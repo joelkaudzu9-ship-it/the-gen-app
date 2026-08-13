@@ -23,6 +23,7 @@ export default function HomePage() {
   const [liveStatus, setLiveStatus] = useState<LiveStatus>({ now: null, next: null, later: [] })
   const [announcements, setAnnouncements] = useState<Announcement[]>([])
   const [loading, setLoading] = useState(true)
+  const [heroImageError, setHeroImageError] = useState(false)
 
   useEffect(() => {
     fetchData()
@@ -70,21 +71,48 @@ export default function HomePage() {
   return (
     <div className="min-h-screen pb-24" style={{ background: PAGE_BG }}>
       <div className="p-4 space-y-4 max-w-md mx-auto">
-        {/* Hero Section - Simple Logo */}
+        {/* ===== HERO SECTION WITH IMAGE ===== */}
         <AnimatedSection>
-          <div className="text-center mb-6">
+          <div className="text-center" style={{ marginBottom: '1.5rem' }}>
             <motion.div
-              initial={{ scale: 0.8, opacity: 0 }}
+              initial={{ scale: 0.95, opacity: 0 }}
               animate={{ scale: 1, opacity: 1 }}
               transition={{ duration: 0.6 }}
-              style={{ width: '96px', height: '96px', margin: '0 auto 12px' }}
+              style={{
+                width: '192px',
+                height: '192px',
+                margin: '0 auto 1rem auto',
+                borderRadius: '24px',
+                overflow: 'hidden',
+                boxShadow: '0 4px 25px rgba(212, 175, 55, 0.15)',
+              }}
             >
-              <div
-                className="rounded-full border-2 border-brand-gold bg-brand-gold/20 flex items-center justify-center mx-auto"
-                style={{ width: '96px', height: '96px' }}
-              >
-                <span className="font-bold text-brand-gold" style={{ fontSize: '2.25rem' }}>G</span>
-              </div>
+              {!heroImageError ? (
+                <img
+                  src="/hero-image.png"
+                  alt="Generation Family Retreat"
+                  width={192}
+                  height={192}
+                  style={{ width: '100%', height: '100%', display: 'block', objectFit: 'cover' }}
+                  onError={() => setHeroImageError(true)}
+                />
+              ) : (
+                <div
+                  style={{
+                    width: '100%',
+                    height: '100%',
+                    background: 'linear-gradient(135deg, #D4AF37 0%, #8B7500 100%)',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    color: '#0A0A0A',
+                    fontWeight: 'bold',
+                    fontSize: '1.5rem',
+                  }}
+                >
+                  🏆 GEN-APP
+                </div>
+              )}
             </motion.div>
 
             <h1 className="text-2xl font-bold text-white">

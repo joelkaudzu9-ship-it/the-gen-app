@@ -25,6 +25,33 @@ export default function UpdatePasswordPage() {
       setChecking(false)
     }
 
+    const markInvalid = () => {
+      if (resolvedRef.current) return
+      resolvedRef.current = true
+      setChecking(false)
+      setValidLink(false)
+      toast.error('Invalid or expired reset link')
+      router.push('/login')
+    }
+
+    // Fix #4: if there's no recovery token in the URL at all, don't make the
+    // user wait out a 4-second timer for something that can never succeed.
+    const hash = window.location.hash
+    const hasRecoveryToken = hash.includes('type=recovery') || hash.includes('access_token=')
+
+    if (!hasRecoveryToken) {
+      // Still check for an existing session (e.g. they're already logged in
+      // and navigated here directly on purpose) before giving up.
+      supabase.auth.getSession().then(({ data }) => {
+        if (data.session) {
+          markValid()
+        } else {
+          markInvalid()
+        }
+      })
+      return
+    }
+
     const { data: listener } = supabase.auth.onAuthStateChange((event) => {
       if (event === 'PASSWORD_RECOVERY') {
         markValid()
@@ -39,13 +66,8 @@ export default function UpdatePasswordPage() {
     // Grace period: give the SDK time to parse the reset-link token from the URL
     // before concluding the link is actually invalid or expired
     const timeout = setTimeout(() => {
-      if (resolvedRef.current) return
-      resolvedRef.current = true
-      setChecking(false)
-      setValidLink(false)
-      toast.error('Invalid or expired reset link')
-      router.push('/login')
-    }, 4000)
+      if (!resolvedRef.current) markInvalid()
+    }, 6000)
 
     return () => {
       listener.subscription.unsubscribe()
@@ -72,8 +94,11 @@ export default function UpdatePasswordPage() {
 
       if (error) throw error
 
+      // Fix #3: the recovery session is already a valid full session at this
+      // point — send them straight into the app instead of making them log
+      // in again with the password they just set.
       toast.success('Password updated successfully!')
-      router.push('/login')
+      router.push('/')
     } catch (error: any) {
       toast.error(error.message)
     } finally {
