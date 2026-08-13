@@ -3,8 +3,6 @@
 
 import { useState } from 'react'
 import { supabase } from '@/lib/supabase'
-import { GoldButton } from '@/components/ui/GoldButton'
-import { GlassCard } from '@/components/ui/GlassCard'
 import { motion } from 'framer-motion'
 import toast from 'react-hot-toast'
 import { Eye, EyeOff } from 'lucide-react'
@@ -101,34 +99,34 @@ export default function AuthForm({ mode, onSuccess }: AuthFormProps) {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center p-4 bg-[#0A0A0A]">
+    <div className="min-h-screen w-full flex items-center justify-center p-6 bg-[#0A0A0A]">
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.6 }}
-        className="w-full max-w-md"
+        className="w-full max-w-lg"
       >
-        <div className="bg-[#1A1A1A] rounded-3xl p-8 border border-[#D4AF37]/20 shadow-xl">
+        <div className="bg-[#1A1A1A] rounded-3xl p-8 md:p-10 border border-[#D4AF37]/20 shadow-xl">
           {/* LOGO */}
-          <div className="text-center mb-8">
-            <div className="w-24 h-24 mx-auto mb-4">
+          <div className="text-center mb-10">
+            <div className="w-28 h-28 mx-auto mb-4">
               {!imageError ? (
                 <img
                   src="/logo-gold.png"
                   alt="THE GEN-APP Logo"
-                  width={96}
-                  height={96}
-                  className="w-24 h-24 object-contain"
+                  width={112}
+                  height={112}
+                  className="w-28 h-28 object-contain"
                   onError={() => setImageError(true)}
                 />
               ) : (
-                <div className="w-24 h-24 rounded-full bg-[#D4AF37]/20 border-2 border-[#D4AF37] flex items-center justify-center mx-auto">
-                  <span className="text-4xl font-bold text-[#D4AF37]">G</span>
+                <div className="w-28 h-28 rounded-full bg-[#D4AF37]/20 border-2 border-[#D4AF37] flex items-center justify-center mx-auto">
+                  <span className="text-5xl font-bold text-[#D4AF37]">G</span>
                 </div>
               )}
             </div>
-            <h1 className="text-3xl font-bold text-[#D4AF37]">THE GEN-APP</h1>
-            <p className="text-white/60 mt-1 text-sm">Generation Family Retreat 2026</p>
+            <h1 className="text-4xl font-bold text-[#D4AF37]">THE GEN-APP</h1>
+            <p className="text-white/60 mt-2 text-base">Generation Family Retreat 2026</p>
           </div>
 
           {/* FORM */}
@@ -187,7 +185,7 @@ export default function AuthForm({ mode, onSuccess }: AuthFormProps) {
                   className="absolute right-4 top-1/2 -translate-y-1/2 text-white/40 hover:text-[#D4AF37] transition-colors"
                   aria-label={showPassword ? 'Hide password' : 'Show password'}
                 >
-                  {showPassword ? <EyeOff size={22} /> : <Eye size={22} />}
+                  {showPassword ? <EyeOff size={24} /> : <Eye size={24} />}
                 </button>
               </div>
             </div>
@@ -195,7 +193,7 @@ export default function AuthForm({ mode, onSuccess }: AuthFormProps) {
             <button
               type="submit"
               disabled={loading}
-              className="w-full bg-gradient-to-r from-[#D4AF37] to-[#8B7500] text-black font-semibold py-4 px-4 rounded-2xl hover:shadow-[0_4px_25px_rgba(212,175,55,0.35)] transition-all duration-300 text-base disabled:opacity-50 disabled:cursor-not-allowed"
+              className="w-full bg-gradient-to-r from-[#D4AF37] to-[#8B7500] text-black font-bold py-4 px-4 rounded-2xl hover:shadow-[0_4px_25px_rgba(212,175,55,0.35)] transition-all duration-300 text-lg disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {loading ? (
                 <span className="flex items-center justify-center gap-2">
@@ -226,6 +224,9 @@ export default function AuthForm({ mode, onSuccess }: AuthFormProps) {
 
           {mode === 'login' && (
             <div className="mt-4 text-center">
+              <p className="text-white/20 text-sm">
+                🔐 Admin users will be redirected to the dashboard
+              </p>
             </div>
           )}
         </div>

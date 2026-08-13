@@ -17,10 +17,10 @@ const navItems = [
 export function BottomNav() {
   const pathname = usePathname()
   
-  // HIDE on login, register, and dashboard
-  const hideNav = pathname === '/login' || 
-                  pathname === '/register' || 
-                  pathname?.startsWith('/dashboard')
+  // HIDE on these pages
+  const hideNav = pathname?.includes('/login') || 
+                  pathname?.includes('/register') || 
+                  pathname?.includes('/dashboard')
 
   if (hideNav) {
     return null
