@@ -9,12 +9,16 @@ const nextConfig = {
       },
     ],
   },
-  // Disable standalone output
-  output: 'standalone',
-  // Skip trailing slash redirect
-  skipTrailingSlashRedirect: true,
-  // Disable static generation for specific pages
+  // Remove standalone output - this causes the issue
+  // output: 'standalone',  // ← REMOVE THIS LINE
+  
+  // Disable static generation for problematic pages
   staticPageGenerationTimeout: 120,
+  
+  // Ensure proper handling of client references
+  experimental: {
+    clientReferenceManifest: true,
+  },
 }
 
 module.exports = nextConfig
