@@ -4,9 +4,10 @@
 import { useEffect, useState } from 'react'
 import { supabase } from '@/lib/supabase'
 import { useRouter } from 'next/navigation'
-import { Shield } from 'lucide-react'
+import { Shield, LogOut } from 'lucide-react'
 import toast from 'react-hot-toast'
 
+// Local admin check function
 function isAdmin(email: string | undefined): boolean {
   const ADMIN_EMAILS = [
     'gizmokzu@gmail.com',
@@ -56,6 +57,12 @@ export default function OrganiserLayout({
     }
   }
 
+  const handleSignOut = async () => {
+    await supabase.auth.signOut()
+    toast.success('Signed out')
+    router.push('/login')
+  }
+
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-[#0A0A0A]">
@@ -71,18 +78,19 @@ export default function OrganiserLayout({
   return (
     <div className="min-h-screen bg-[#0A0A0A]">
       <div className="max-w-7xl mx-auto px-4 py-6">
+        {/* Header with Styled Sign Out Button */}
         <div className="flex items-center justify-between mb-6">
           <div className="flex items-center gap-3">
-            <Shield size={28} className="text-[#D4AF37]" />
-            <h1 className="text-2xl font-bold text-white">Organiser Dashboard</h1>
+            <div className="p-2 rounded-xl bg-[#D4AF37]/10">
+              <Shield size={24} className="text-[#D4AF37]" />
+            </div>
+            <h1 className="text-xl font-bold text-white">Organiser Dashboard</h1>
           </div>
           <button
-            onClick={async () => {
-              await supabase.auth.signOut()
-              router.push('/login')
-            }}
-            className="text-white/40 hover:text-[#D4AF37] transition-colors text-sm"
+            onClick={handleSignOut}
+            className="flex items-center gap-2 px-4 py-2 rounded-xl bg-red-500/10 border border-red-500/20 text-red-400 hover:bg-red-500/20 transition-all duration-300 text-sm font-medium"
           >
+            <LogOut size={16} />
             Sign Out
           </button>
         </div>
