@@ -6,7 +6,6 @@ import { supabase } from '@/lib/supabase'
 import { motion } from 'framer-motion'
 import toast from 'react-hot-toast'
 import { Eye, EyeOff } from 'lucide-react'
-import Image from 'next/image'
 
 const ADMIN_EMAILS = [
   'gizmokzu@gmail.com',
@@ -38,27 +37,17 @@ export default function AuthForm({ mode, onSuccess }: AuthFormProps) {
 
     try {
       if (mode === 'login') {
-        const { data, error } = await supabase.auth.signInWithPassword({
-          email,
-          password,
-        })
+        const { data, error } = await supabase.auth.signInWithPassword({ email, password })
         if (error) throw error
 
-        const userEmail = data.user?.email
-        const admin = isAdmin(userEmail)
+        const admin = isAdmin(data.user?.email)
 
         if (admin) {
           toast.success('👋 Welcome Admin! Redirecting to dashboard...', {
             duration: 3000,
-            style: {
-              background: '#0A0A0A',
-              color: '#D4AF37',
-              border: '1px solid rgba(212, 175, 55, 0.3)',
-            },
+            style: { background: '#0A0A0A', color: '#D4AF37', border: '1px solid rgba(212, 175, 55, 0.3)' },
           })
-          setTimeout(() => {
-            window.location.href = '/dashboard'
-          }, 500)
+          setTimeout(() => { window.location.href = '/dashboard' }, 500)
           return
         }
 
@@ -78,18 +67,12 @@ export default function AuthForm({ mode, onSuccess }: AuthFormProps) {
         if (data.user) {
           const { error: insertError } = await supabase
             .from('participants')
-            .insert({
-              user_id: data.user.id,
-              full_name: fullName,
-            })
-
+            .insert({ user_id: data.user.id, full_name: fullName })
           if (insertError) throw insertError
         }
 
         toast.success('Account created! Please check your email to confirm. 🎉')
-        setTimeout(() => {
-          window.location.href = '/login'
-        }, 3000)
+        setTimeout(() => { window.location.href = '/login' }, 3000)
       }
     } catch (error: any) {
       toast.error(error.message)
@@ -99,52 +82,51 @@ export default function AuthForm({ mode, onSuccess }: AuthFormProps) {
   }
 
   return (
-    <div className="min-h-screen w-full flex items-center justify-center p-6 bg-[#0A0A0A]">
+    <div className="min-h-screen flex items-center justify-center p-6">
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.6 }}
-        className="w-full max-w-lg"
+        className="w-full max-w-md"
       >
-        <div className="bg-[#1A1A1A] rounded-3xl p-8 md:p-10 border border-[#D4AF37]/20 shadow-xl">
+        <div className="glass-card-dark">
           {/* LOGO */}
-          <div className="text-center mb-10">
-            <div className="w-28 h-28 mx-auto mb-4">
+          <div className="text-center mb-4">
+            <div className="w-20 h-20 mx-auto mb-2" style={{ marginBottom: '1rem' }}>
               {!imageError ? (
                 <img
                   src="/logo-gold.png"
                   alt="THE GEN-APP Logo"
-                  width={112}
-                  height={112}
-                  className="w-28 h-28 object-contain"
+                  className="w-20 h-20"
+                  style={{ objectFit: 'contain' }}
                   onError={() => setImageError(true)}
                 />
               ) : (
-                <div className="w-28 h-28 rounded-full bg-[#D4AF37]/20 border-2 border-[#D4AF37] flex items-center justify-center mx-auto">
-                  <span className="text-5xl font-bold text-[#D4AF37]">G</span>
+                <div className="w-20 h-20 rounded-full bg-brand-gold/20 border-2 border-brand-gold flex items-center justify-center mx-auto">
+                  <span className="text-2xl font-bold text-brand-gold">G</span>
                 </div>
               )}
             </div>
-            <h1 className="text-4xl font-bold text-[#D4AF37]">THE GEN-APP</h1>
-            <p className="text-white/60 mt-2 text-base">Generation Family Retreat 2026</p>
+            <h1 className="text-2xl font-bold text-brand-gold">THE GEN-APP</h1>
+            <p className="text-white/60 mt-2 text-sm">Generation Family Retreat 2026</p>
           </div>
 
           {/* FORM */}
-          <form onSubmit={handleSubmit} className="space-y-6">
+          <form onSubmit={handleSubmit} className="space-y-4">
             {mode === 'register' && (
               <motion.div
                 initial={{ opacity: 0, height: 0 }}
                 animate={{ opacity: 1, height: 'auto' }}
                 transition={{ duration: 0.3 }}
               >
-                <label className="block text-white/80 text-sm font-medium mb-2">
+                <label className="text-white/80 text-sm font-medium mb-2" style={{ display: 'block' }}>
                   Full Name
                 </label>
                 <input
                   type="text"
                   value={fullName}
                   onChange={(e) => setFullName(e.target.value)}
-                  className="w-full px-5 py-4 rounded-2xl border border-white/10 bg-white/5 text-white text-base focus:border-[#D4AF37] focus:ring-2 focus:ring-[#D4AF37]/20 transition-all duration-300 placeholder:text-white/30"
+                  className="input-gold"
                   placeholder="Enter your full name"
                   required={mode === 'register'}
                 />
@@ -152,21 +134,21 @@ export default function AuthForm({ mode, onSuccess }: AuthFormProps) {
             )}
 
             <div>
-              <label className="block text-white/80 text-sm font-medium mb-2">
+              <label className="text-white/80 text-sm font-medium mb-2" style={{ display: 'block' }}>
                 Email Address
               </label>
               <input
                 type="email"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                className="w-full px-5 py-4 rounded-2xl border border-white/10 bg-white/5 text-white text-base focus:border-[#D4AF37] focus:ring-2 focus:ring-[#D4AF37]/20 transition-all duration-300 placeholder:text-white/30"
+                className="input-gold"
                 placeholder="you@example.com"
                 required
               />
             </div>
 
             <div>
-              <label className="block text-white/80 text-sm font-medium mb-2">
+              <label className="text-white/80 text-sm font-medium mb-2" style={{ display: 'block' }}>
                 Password
               </label>
               <div className="relative">
@@ -174,32 +156,40 @@ export default function AuthForm({ mode, onSuccess }: AuthFormProps) {
                   type={showPassword ? 'text' : 'password'}
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
-                  className="w-full px-5 py-4 rounded-2xl border border-white/10 bg-white/5 text-white text-base focus:border-[#D4AF37] focus:ring-2 focus:ring-[#D4AF37]/20 transition-all duration-300 placeholder:text-white/30 pr-14"
+                  className="input-gold"
                   placeholder="••••••••"
                   required
                   minLength={6}
+                  style={{ paddingRight: '48px' }}
                 />
                 <button
                   type="button"
                   onClick={() => setShowPassword(!showPassword)}
-                  className="absolute right-4 top-1/2 -translate-y-1/2 text-white/40 hover:text-[#D4AF37] transition-colors"
+                  className="absolute"
+                  style={{
+                    right: '16px',
+                    top: '50%',
+                    transform: 'translateY(-50%)',
+                    background: 'none',
+                    border: 'none',
+                    cursor: 'pointer',
+                    color: 'rgba(255,255,255,0.4)',
+                    display: 'flex',
+                    alignItems: 'center',
+                  }}
                   aria-label={showPassword ? 'Hide password' : 'Show password'}
                 >
-                  {showPassword ? <EyeOff size={24} /> : <Eye size={24} />}
+                  {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
                 </button>
               </div>
             </div>
 
-            <button
-              type="submit"
-              disabled={loading}
-              className="w-full bg-gradient-to-r from-[#D4AF37] to-[#8B7500] text-black font-bold py-4 px-4 rounded-2xl hover:shadow-[0_4px_25px_rgba(212,175,55,0.35)] transition-all duration-300 text-lg disabled:opacity-50 disabled:cursor-not-allowed"
-            >
+            <button type="submit" disabled={loading} className="btn-gold w-full">
               {loading ? (
                 <span className="flex items-center justify-center gap-2">
-                  <svg className="animate-spin h-5 w-5" viewBox="0 0 24 24">
-                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" />
-                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
+                  <svg className="animate-spin" width={18} height={18} viewBox="0 0 24 24">
+                    <circle style={{ opacity: 0.25 }} cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" />
+                    <path style={{ opacity: 0.75 }} fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
                   </svg>
                   Loading...
                 </span>
@@ -210,12 +200,13 @@ export default function AuthForm({ mode, onSuccess }: AuthFormProps) {
           </form>
 
           {/* TOGGLE */}
-          <div className="mt-8 text-center">
-            <p className="text-white/40 text-base">
+          <div className="mt-4 text-center">
+            <p className="text-white/40 text-sm">
               {mode === 'login' ? "Don't have an account? " : "Already have an account? "}
               <button
                 onClick={() => window.location.href = mode === 'login' ? '/register' : '/login'}
-                className="text-[#D4AF37] hover:underline transition-colors font-medium text-base"
+                className="text-brand-gold font-medium text-sm"
+                style={{ textDecoration: 'underline', background: 'none', border: 'none', cursor: 'pointer' }}
               >
                 {mode === 'login' ? 'Sign Up' : 'Sign In'}
               </button>
@@ -224,7 +215,7 @@ export default function AuthForm({ mode, onSuccess }: AuthFormProps) {
 
           {mode === 'login' && (
             <div className="mt-4 text-center">
-              <p className="text-white/20 text-sm">
+              <p className="text-white/20 text-xs">
                 🔐 Admin users will be redirected to the dashboard
               </p>
             </div>
