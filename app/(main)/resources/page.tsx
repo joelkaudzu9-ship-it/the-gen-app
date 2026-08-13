@@ -78,3 +78,10 @@ export default function ResourcesPage() {
     </div>
   )
 }
+
+function getCurrentDay() {
+  const startDate = new Date('2026-08-13')
+  const now = new Date()
+  const diff = Math.floor((now.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24))
+  return Math.min(Math.max(diff + 1, 1), 5)
+}
