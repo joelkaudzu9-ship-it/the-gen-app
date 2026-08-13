@@ -78,18 +78,13 @@ export default function AuthForm({ mode, onSuccess }: AuthFormProps) {
         if (error) throw error
 
         if (data.user) {
-          const isAdminUser = isAdmin(email)
-          const participantData: any = {
-            user_id: data.user.id,
-            full_name: fullName,
-          }
-          if (isAdminUser) {
-            participantData.role = 'admin'
-          }
-
+          // NO role column - just insert user_id and full_name
           const { error: insertError } = await supabase
             .from('participants')
-            .insert(participantData)
+            .insert({
+              user_id: data.user.id,
+              full_name: fullName,
+            })
 
           if (insertError) throw insertError
         }
@@ -115,7 +110,7 @@ export default function AuthForm({ mode, onSuccess }: AuthFormProps) {
         className="w-full max-w-md"
       >
         <GlassCard dark className="p-8">
-          {/* ===== LOGO ===== */}
+          {/* LOGO */}
           <div className="text-center mb-8">
             <div className="relative w-24 h-24 mx-auto mb-4">
               {!imageError ? (
@@ -138,9 +133,8 @@ export default function AuthForm({ mode, onSuccess }: AuthFormProps) {
             <p className="text-white/60 mt-1 text-sm">Generation Family Retreat 2026</p>
           </div>
 
-          {/* ===== FORM ===== */}
+          {/* FORM */}
           <form onSubmit={handleSubmit} className="space-y-4">
-            {/* Full Name - Only for Register */}
             {mode === 'register' && (
               <motion.div
                 initial={{ opacity: 0, height: 0 }}
@@ -161,7 +155,6 @@ export default function AuthForm({ mode, onSuccess }: AuthFormProps) {
               </motion.div>
             )}
 
-            {/* Email */}
             <div>
               <label className="block text-white/80 text-sm font-medium mb-1">
                 Email Address
@@ -176,7 +169,6 @@ export default function AuthForm({ mode, onSuccess }: AuthFormProps) {
               />
             </div>
 
-            {/* Password with Eye Icon */}
             <div>
               <label className="block text-white/80 text-sm font-medium mb-1">
                 Password
@@ -202,13 +194,12 @@ export default function AuthForm({ mode, onSuccess }: AuthFormProps) {
               </div>
             </div>
 
-            {/* Submit Button */}
             <GoldButton type="submit" loading={loading} fullWidth>
               {mode === 'login' ? 'Sign In' : 'Create Account'}
             </GoldButton>
           </form>
 
-          {/* ===== TOGGLE BETWEEN LOGIN/REGISTER ===== */}
+          {/* TOGGLE */}
           <div className="mt-6 text-center">
             <p className="text-white/40 text-sm">
               {mode === 'login' ? "Don't have an account? " : "Already have an account? "}
@@ -221,7 +212,6 @@ export default function AuthForm({ mode, onSuccess }: AuthFormProps) {
             </p>
           </div>
 
-          {/* Admin Hint */}
           {mode === 'login' && (
             <div className="mt-4 text-center">
               <p className="text-white/20 text-xs">
