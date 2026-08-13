@@ -10,6 +10,10 @@ import {
   Bus,
   LifeBuoy,
   Calendar,
+  LayoutGrid,
+  Camera,
+  Megaphone,
+  RefreshCw,
 } from 'lucide-react'
 import { QRScanner } from '@/components/organiser/QRScanner'
 import { AnnouncementPublisher } from '@/components/organiser/AnnouncementPublisher'
@@ -44,6 +48,7 @@ const GOLD_GRADIENT = 'linear-gradient(135deg, #D4AF37 0%, #B8960F 50%, #8B7500 
 export default function DashboardPage() {
   const [stats, setStats] = useState<DashboardStats>(defaultStats)
   const [loading, setLoading] = useState(true)
+  const [refreshing, setRefreshing] = useState(false)
   const [activeTab, setActiveTab] = useState<'overview' | 'scanner' | 'announcements' | 'help'>('overview')
 
   useEffect(() => {
@@ -109,6 +114,13 @@ export default function DashboardPage() {
     }
   }
 
+  const handleRefresh = async () => {
+    setRefreshing(true)
+    await fetchStats()
+    setRefreshing(false)
+    toast.success('Dashboard updated')
+  }
+
   if (loading) {
     return (
       <div className="flex items-center justify-center" style={{ minHeight: '60vh' }}>
@@ -121,10 +133,10 @@ export default function DashboardPage() {
   }
 
   const tabs = [
-    { id: 'overview', label: '📊' },
-    { id: 'scanner', label: '📷' },
-    { id: 'announcements', label: '📢' },
-    { id: 'help', label: '🆘' },
+    { id: 'overview', label: 'Overview', icon: LayoutGrid },
+    { id: 'scanner', label: 'Scanner', icon: Camera },
+    { id: 'announcements', label: 'Announce', icon: Megaphone },
+    { id: 'help', label: 'Help', icon: LifeBuoy },
   ] as const
 
   return (
@@ -132,6 +144,25 @@ export default function DashboardPage() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <span className="text-white/40 text-xs">Updated: {new Date().toLocaleTimeString()}</span>
+        <button
+          onClick={handleRefresh}
+          disabled={refreshing}
+          className="flex items-center gap-1 rounded-full"
+          style={{
+            padding: '6px 12px',
+            background: 'rgba(212, 175, 55, 0.1)',
+            border: '1px solid rgba(212, 175, 55, 0.2)',
+            color: '#D4AF37',
+            fontSize: '12px',
+            fontWeight: 500,
+            cursor: refreshing ? 'default' : 'pointer',
+            opacity: refreshing ? 0.6 : 1,
+            transition: 'opacity 0.2s ease',
+          }}
+        >
+          <RefreshCw size={13} className={refreshing ? 'animate-spin' : ''} />
+          Refresh
+        </button>
       </div>
 
       {/* Stats - Compact */}
@@ -202,25 +233,35 @@ export default function DashboardPage() {
         </GlassCard>
       )}
 
-      {/* Tabs - Compact */}
-      <div className="flex gap-1 overflow-x-auto" style={{ paddingBottom: '8px' }}>
+      {/* Tabs */}
+      <div className="grid grid-cols-4 gap-2">
         {tabs.map((tab) => {
           const isActive = activeTab === tab.id
+          const Icon = tab.icon
           return (
             <button
               key={tab.id}
               onClick={() => setActiveTab(tab.id)}
-              className="rounded-xl text-sm font-medium whitespace-nowrap"
+              className="flex flex-col items-center rounded-xl"
               style={{
-                padding: '8px 16px',
+                gap: '4px',
+                padding: '10px 4px',
                 transition: 'all 0.3s ease',
                 background: isActive ? GOLD_GRADIENT : 'rgba(255,255,255,0.05)',
-                color: isActive ? '#0A0A0A' : 'rgba(255,255,255,0.6)',
                 boxShadow: isActive ? '0 4px 25px rgba(212,175,55,0.35)' : 'none',
                 border: isActive ? 'none' : '1px solid rgba(255,255,255,0.1)',
               }}
             >
-              {tab.label}
+              <Icon size={18} style={{ color: isActive ? '#0A0A0A' : 'rgba(255,255,255,0.6)' }} />
+              <span
+                style={{
+                  fontSize: '11px',
+                  fontWeight: 500,
+                  color: isActive ? '#0A0A0A' : 'rgba(255,255,255,0.6)',
+                }}
+              >
+                {tab.label}
+              </span>
             </button>
           )
         })}

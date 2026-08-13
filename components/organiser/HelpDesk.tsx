@@ -107,9 +107,20 @@ export function HelpDesk() {
         <button
           onClick={handleRefresh}
           disabled={refreshing}
-          className="text-white/40 hover:text-[#D4AF37] transition-colors p-1"
+          className="flex items-center gap-1 rounded-full"
+          style={{
+            padding: '6px 12px',
+            background: 'rgba(212, 175, 55, 0.1)',
+            border: '1px solid rgba(212, 175, 55, 0.2)',
+            color: '#D4AF37',
+            fontSize: '12px',
+            fontWeight: 500,
+            cursor: refreshing ? 'default' : 'pointer',
+            opacity: refreshing ? 0.6 : 1,
+          }}
         >
-          <RefreshCw size={16} className={refreshing ? 'animate-spin' : ''} />
+          <RefreshCw size={13} className={refreshing ? 'animate-spin' : ''} />
+          Refresh
         </button>
       </div>
 
