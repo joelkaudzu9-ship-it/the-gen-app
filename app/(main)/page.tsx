@@ -71,71 +71,98 @@ export default function HomePage() {
   return (
     <div className="min-h-screen pb-24" style={{ background: PAGE_BG }}>
       <div className="p-4 space-y-4 max-w-md mx-auto">
-        {/* ===== HERO SECTION WITH IMAGE ===== */}
+        {/* ===== HERO SECTION — BACKGROUND IMAGE WITH TEXT OVERLAY ===== */}
         <AnimatedSection>
-          <div className="text-center" style={{ marginBottom: '1.5rem' }}>
-            <motion.div
-              initial={{ scale: 0.95, opacity: 0 }}
-              animate={{ scale: 1, opacity: 1 }}
-              transition={{ duration: 0.6 }}
+          <motion.div
+            initial={{ scale: 0.98, opacity: 0 }}
+            animate={{ scale: 1, opacity: 1 }}
+            transition={{ duration: 0.6 }}
+            style={{
+              position: 'relative',
+              width: '100%',
+              minHeight: '260px',
+              borderRadius: '24px',
+              overflow: 'hidden',
+              marginBottom: '1.5rem',
+              boxShadow: '0 4px 25px rgba(212, 175, 55, 0.15)',
+            }}
+          >
+            {!heroImageError ? (
+              <img
+                src="/hero-image.png"
+                alt=""
+                onError={() => setHeroImageError(true)}
+                style={{
+                  position: 'absolute',
+                  inset: 0,
+                  width: '100%',
+                  height: '100%',
+                  objectFit: 'cover',
+                  objectPosition: 'center',
+                }}
+              />
+            ) : (
+              <div
+                style={{
+                  position: 'absolute',
+                  inset: 0,
+                  background: 'linear-gradient(135deg, #D4AF37 0%, #8B7500 100%)',
+                }}
+              />
+            )}
+
+            <div
               style={{
-                width: '192px',
-                height: '192px',
-                margin: '0 auto 1rem auto',
-                borderRadius: '24px',
-                overflow: 'hidden',
-                boxShadow: '0 4px 25px rgba(212, 175, 55, 0.15)',
+                position: 'absolute',
+                inset: 0,
+                background: 'linear-gradient(to bottom, rgba(10,10,10,0.35) 0%, rgba(10,10,10,0.55) 50%, rgba(10,10,10,0.9) 100%)',
+              }}
+            />
+
+            <div
+              style={{
+                position: 'relative',
+                zIndex: 1,
+                height: '100%',
+                display: 'flex',
+                flexDirection: 'column',
+                alignItems: 'center',
+                justifyContent: 'center',
+                textAlign: 'center',
+                padding: '2rem 1.5rem',
               }}
             >
-              {!heroImageError ? (
-                <img
-                  src="/hero-image.png"
-                  alt="Generation Family Retreat"
-                  width={192}
-                  height={192}
-                  style={{ width: '100%', height: '100%', display: 'block', objectFit: 'cover' }}
-                  onError={() => setHeroImageError(true)}
+              <h1
+                className="text-2xl font-bold text-white"
+                style={{ textShadow: '0 2px 8px rgba(0,0,0,0.5)' }}
+              >
+                Good {new Date().getHours() < 12 ? 'Morning' : 'Afternoon'}, {participant?.full_name?.split(' ')[0] || 'Guest'} 👋
+              </h1>
+              <div className="flex items-center justify-center gap-2 mt-1">
+                <span
+                  className="rounded-full bg-brand-gold animate-pulse"
+                  style={{ display: 'inline-block', width: '8px', height: '8px' }}
                 />
-              ) : (
-                <div
-                  style={{
-                    width: '100%',
-                    height: '100%',
-                    background: 'linear-gradient(135deg, #D4AF37 0%, #8B7500 100%)',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    color: '#0A0A0A',
-                    fontWeight: 'bold',
-                    fontSize: '1.5rem',
-                  }}
-                >
-                  🏆 GEN-APP
-                </div>
-              )}
-            </motion.div>
+                <p className="text-sm" style={{ color: '#D4AF37', textShadow: '0 1px 4px rgba(0,0,0,0.6)' }}>
+                  DAY {getCurrentDay()} • RETREAT 2026
+                </p>
+              </div>
 
-            <h1 className="text-2xl font-bold text-white">
-              Good {new Date().getHours() < 12 ? 'Morning' : 'Afternoon'}, {participant?.full_name?.split(' ')[0] || 'Guest'} 👋
-            </h1>
-            <div className="flex items-center justify-center gap-2 mt-1">
-              <span
-                className="rounded-full bg-brand-gold animate-pulse"
-                style={{ display: 'inline-block', width: '8px', height: '8px' }}
-              />
-              <p className="text-sm" style={{ color: 'rgba(212,175,55,0.6)' }}>
-                DAY {getCurrentDay()} • RETREAT 2026
-              </p>
+              <button
+                onClick={handleSignOut}
+                className="text-sm mt-2 flex items-center gap-1 mx-auto"
+                style={{
+                  background: 'transparent',
+                  border: 'none',
+                  cursor: 'pointer',
+                  color: 'rgba(255,255,255,0.7)',
+                  textShadow: '0 1px 4px rgba(0,0,0,0.6)',
+                }}
+              >
+                <LogOut size={14} /> Sign Out
+              </button>
             </div>
-
-            <button
-              onClick={handleSignOut}
-              className="text-white/30 text-sm mt-2 flex items-center gap-1 mx-auto"
-              style={{ background: 'transparent', border: 'none', cursor: 'pointer' }}
-            >
-              <LogOut size={14} /> Sign Out
-            </button>
-          </div>
+          </motion.div>
         </AnimatedSection>
 
         {/* Live Status */}
