@@ -20,16 +20,19 @@ export function AnnouncementCard({ announcement, index }: AnnouncementCardProps)
     >
       <GlassCard
         dark
-        className={announcement.priority ? 'border-l-4 border-[#D4AF37]' : ''}
+        className={announcement.priority ? 'border-l-4 border-brand-gold' : ''}
         hover={false}
       >
         <div className="flex items-start gap-3">
-          <Bell size={20} className={announcement.priority ? 'text-[#D4AF37]' : 'text-white/40'} />
+          <Bell size={20} className={announcement.priority ? 'text-brand-gold' : 'text-white/40'} />
           <div>
-            <div className="flex items-center gap-2 flex-wrap">
+            <div className="flex items-center gap-2" style={{ flexWrap: 'wrap' }}>
               <h4 className="font-semibold text-white">{announcement.title}</h4>
               {announcement.priority && (
-                <span className="text-[10px] bg-[#D4AF37]/20 text-[#D4AF37] px-2 py-0.5 rounded-full">
+                <span
+                  className="bg-brand-gold/20 text-brand-gold rounded-full"
+                  style={{ fontSize: '10px', padding: '2px 8px' }}
+                >
                   Important
                 </span>
               )}

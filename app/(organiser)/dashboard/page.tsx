@@ -4,18 +4,12 @@
 import { useEffect, useState } from 'react'
 import { supabase } from '@/lib/supabase'
 import { GlassCard } from '@/components/ui/GlassCard'
-import { AnimatedSection } from '@/components/ui/AnimatedSection'
-import { 
-  Users, 
-  UserCheck, 
-  Bus, 
-  LifeBuoy, 
+import {
+  Users,
+  UserCheck,
+  Bus,
+  LifeBuoy,
   Calendar,
-  RefreshCw,
-  Eye,
-  CheckCircle,
-  Clock,
-  Camera
 } from 'lucide-react'
 import { QRScanner } from '@/components/organiser/QRScanner'
 import { AnnouncementPublisher } from '@/components/organiser/AnnouncementPublisher'
@@ -42,8 +36,10 @@ const defaultStats: DashboardStats = {
   activeBuses: 0,
   pendingHelpRequests: 0,
   currentSession: null,
-  nextSession: null
+  nextSession: null,
 }
+
+const GOLD_GRADIENT = 'linear-gradient(135deg, #D4AF37 0%, #B8960F 50%, #8B7500 100%)'
 
 export default function DashboardPage() {
   const [stats, setStats] = useState<DashboardStats>(defaultStats)
@@ -115,11 +111,21 @@ export default function DashboardPage() {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center min-h-[60vh]">
-        <div className="animate-spin rounded-full h-12 w-12 border-4 border-[#D4AF37] border-t-transparent"></div>
+      <div className="flex items-center justify-center" style={{ minHeight: '60vh' }}>
+        <div
+          className="animate-spin rounded-full"
+          style={{ width: 48, height: 48, border: '4px solid #D4AF37', borderTopColor: 'transparent' }}
+        />
       </div>
     )
   }
+
+  const tabs = [
+    { id: 'overview', label: '📊' },
+    { id: 'scanner', label: '📷' },
+    { id: 'announcements', label: '📢' },
+    { id: 'help', label: '🆘' },
+  ] as const
 
   return (
     <div className="space-y-4 pb-24">
@@ -130,103 +136,36 @@ export default function DashboardPage() {
 
       {/* Stats - Compact */}
       <div className="grid grid-cols-2 gap-3">
-        <GlassCard dark className="text-center py-3">
-          <Users size={20} className="text-[#D4AF37] mx-auto mb-1" />
+        <GlassCard dark className="text-center" style={{ padding: '12px' }}>
+          <Users size={20} className="text-brand-gold mx-auto mb-1" />
           <p className="text-xl font-bold text-white">{stats.totalParticipants || 0}</p>
           <p className="text-white/40 text-xs">Total</p>
         </GlassCard>
 
-        <GlassCard dark className="text-center py-3">
+        <GlassCard dark className="text-center" style={{ padding: '12px' }}>
           <UserCheck size={20} className="text-green-500 mx-auto mb-1" />
           <p className="text-xl font-bold text-white">{stats.checkedIn || 0}</p>
           <p className="text-white/40 text-xs">Checked In</p>
-          <p className="text-[10px] text-green-500">{stats.attendancePercentage || 0}%</p>
+          <p className="text-green-500" style={{ fontSize: '10px' }}>{stats.attendancePercentage || 0}%</p>
         </GlassCard>
 
-        <GlassCard dark className="text-center py-3">
-          <Bus size={20} className="text-blue-500 mx-auto mb-1" />
+        <GlassCard dark className="text-center" style={{ padding: '12px' }}>
+          <Bus size={20} className="mx-auto mb-1" style={{ color: '#3B82F6' }} />
           <p className="text-xl font-bold text-white">{stats.activeBuses || 0}</p>
           <p className="text-white/40 text-xs">Buses</p>
         </GlassCard>
 
-        <GlassCard dark className="text-center py-3 relative">
-          <LifeBuoy size={20} className={`mx-auto mb-1 ${(stats.pendingHelpRequests || 0) > 0 ? 'text-red-500' : 'text-[#D4AF37]'}`} />
+        <GlassCard dark className="text-center relative" style={{ padding: '12px' }}>
+          <LifeBuoy
+            size={20}
+            className="mx-auto mb-1"
+            style={{ color: (stats.pendingHelpRequests || 0) > 0 ? '#EF4444' : '#D4AF37' }}
+          />
           <p className="text-xl font-bold text-white">{stats.pendingHelpRequests || 0}</p>
           <p className="text-white/40 text-xs">Help</p>
           {(stats.pendingHelpRequests || 0) > 0 && (
-            <span className="absolute -top-1 -right-1 w-3 h-3 bg-red-500 rounded-full animate-pulse" />
+            <span
+              className="absolute rounded-full animate-pulse"
+              style={{ top: '-4px', right: '-4px', width: 12, height: 12, background: '#EF4444' }}
+            />
           )}
-        </GlassCard>
-      </div>
-
-      {/* Current Session - Compact */}
-      {stats.currentSession && (
-        <GlassCard dark className="py-3 px-4">
-          <div className="flex items-center gap-3">
-            <div className="p-2 rounded-xl bg-[#D4AF37]/10">
-              <Calendar size={18} className="text-[#D4AF37]" />
-            </div>
-            <div className="flex-1 min-w-0">
-              <p className="text-white/40 text-[10px] uppercase tracking-wider">Now</p>
-              <p className="text-white font-semibold text-sm truncate">{stats.currentSession.title}</p>
-              <p className="text-white/40 text-xs">
-                {stats.currentSession.location} • {new Date(stats.currentSession.start_time).toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'})}
-              </p>
-            </div>
-            <span className="flex items-center gap-1 text-[10px] bg-red-500/20 text-red-400 px-2 py-1 rounded-full">
-              <span className="w-1.5 h-1.5 rounded-full bg-red-500 animate-pulse" />
-              LIVE
-            </span>
-          </div>
-        </GlassCard>
-      )}
-
-      {/* Tabs - Compact */}
-      <div className="flex gap-1 overflow-x-auto pb-2 scrollbar-hide">
-        {[
-          { id: 'overview', label: '📊' },
-          { id: 'scanner', label: '📷' },
-          { id: 'announcements', label: '📢' },
-          { id: 'help', label: '🆘' },
-        ].map((tab) => (
-          <button
-            key={tab.id}
-            onClick={() => setActiveTab(tab.id as any)}
-            className={`
-              px-4 py-2 rounded-xl text-sm font-medium transition-all duration-300 whitespace-nowrap
-              ${activeTab === tab.id 
-                ? 'bg-gradient-to-r from-[#D4AF37] to-[#8B7500] text-black shadow-[0_4px_25px_rgba(212,175,55,0.35)]' 
-                : 'bg-white/5 text-white/60 hover:text-white border border-white/10'
-              }
-            `}
-          >
-            {tab.label}
-          </button>
-        ))}
-      </div>
-
-      {/* Tab Content */}
-      <div className="mt-2">
-        {activeTab === 'overview' && (
-          <GlassCard dark>
-            <div className="flex items-center justify-between">
-              <span className="text-white/40 text-xs">Attendance</span>
-              <span className="text-white/60 text-sm font-medium">{stats.attendancePercentage || 0}%</span>
-            </div>
-            <div className="mt-2 h-2 bg-white/10 rounded-full overflow-hidden">
-              <div 
-                className="h-full bg-gradient-to-r from-[#D4AF37] to-[#8B7500] rounded-full transition-all duration-500"
-                style={{ width: `${stats.attendancePercentage || 0}%` }}
-              />
-            </div>
-            <p className="text-white/40 text-xs mt-1">{stats.checkedIn || 0} of {stats.totalParticipants || 0} checked in</p>
-          </GlassCard>
-        )}
-
-        {activeTab === 'scanner' && <QRScanner />}
-        {activeTab === 'announcements' && <AnnouncementPublisher />}
-        {activeTab === 'help' && <HelpDesk />}
-      </div>
-    </div>
-  )
-}

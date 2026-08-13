@@ -8,12 +8,15 @@ import { GlassCard } from '@/components/ui/GlassCard'
 import { AnimatedSection } from '@/components/ui/AnimatedSection'
 import { MeSkeleton } from '@/components/ui/LoadingSkeleton'
 import { QRCodeCanvas } from 'qrcode.react'
-import { User, Users, Bus, CheckCircle, RefreshCw } from 'lucide-react'
+import { Users, Bus, CheckCircle, RefreshCw } from 'lucide-react'
 import { motion } from 'framer-motion'
 import toast from 'react-hot-toast'
 
 export const dynamic = 'force-dynamic'
 export const fetchCache = 'force-no-store'
+
+const GOLD_GRADIENT_DIAG = 'linear-gradient(135deg, #D4AF37 0%, #8B7500 100%)'
+const PAGE_BG = 'linear-gradient(to bottom, #0A0A0A, #0A0A0A, #1A1A1A)'
 
 export default function MePage() {
   const [participant, setParticipant] = useState<Participant | null>(null)
@@ -49,7 +52,7 @@ export default function MePage() {
   if (loading) return <MeSkeleton />
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-[#0A0A0A] via-[#0A0A0A] to-[#1A1A1A] p-4 pb-24">
+    <div className="min-h-screen p-4 pb-24" style={{ background: PAGE_BG }}>
       <div className="flex items-center justify-between mb-4">
         <AnimatedSection>
           <h1 className="text-2xl font-bold text-white">My Retreat</h1>
@@ -57,7 +60,8 @@ export default function MePage() {
         <button
           onClick={handleRefresh}
           disabled={refreshing}
-          className="text-white/40 hover:text-[#D4AF37] transition-colors p-2 rounded-xl hover:bg-white/5"
+          className="text-white/40 rounded-xl"
+          style={{ padding: '8px', background: 'transparent', border: 'none', cursor: 'pointer' }}
         >
           <RefreshCw size={20} className={refreshing ? 'animate-spin' : ''} />
         </button>
@@ -72,7 +76,10 @@ export default function MePage() {
             transition={{ duration: 0.5 }}
           >
             {/* Avatar */}
-            <div className="w-24 h-24 mx-auto rounded-full bg-gradient-to-br from-[#D4AF37] to-[#8B7500] flex items-center justify-center text-3xl font-bold text-black shadow-[0_4px_25px_rgba(212,175,55,0.3)] mb-4">
+            <div
+              className="rounded-full mx-auto flex items-center justify-center font-bold text-black shadow-gold mb-4"
+              style={{ width: '96px', height: '96px', background: GOLD_GRADIENT_DIAG, fontSize: '1.875rem' }}
+            >
               {participant?.full_name?.charAt(0) || 'G'}
             </div>
 
@@ -81,13 +88,21 @@ export default function MePage() {
               <p className="text-white/60 text-sm">{participant.university}</p>
             )}
             {participant?.groups && (
-              <p className="text-[#D4AF37] text-sm mt-1 font-medium">
+              <p className="text-brand-gold text-sm mt-1 font-medium">
                 🏠 {participant.groups.name}
               </p>
             )}
 
             {/* QR Code */}
-            <div className="mt-4 inline-block bg-white p-4 rounded-xl shadow-[0_4px_25px_rgba(0,0,0,0.3)]">
+            <div
+              className="mt-4 rounded-xl"
+              style={{
+                display: 'inline-block',
+                background: '#FFFFFF',
+                padding: '16px',
+                boxShadow: '0 4px 25px rgba(0,0,0,0.3)',
+              }}
+            >
               <QRCodeCanvas
                 value={participant?.id || 'no-id'}
                 size={160}
@@ -109,8 +124,8 @@ export default function MePage() {
           <AnimatedSection delay={0.2}>
             <GlassCard dark>
               <div className="flex items-start gap-3">
-                <div className="p-2 rounded-xl bg-[#D4AF37]/10">
-                  <Users size={18} className="text-[#D4AF37]" />
+                <div className="rounded-xl bg-brand-gold/10" style={{ padding: '8px' }}>
+                  <Users size={18} className="text-brand-gold" />
                 </div>
                 <div>
                   <p className="text-white/60 text-sm">My Group</p>
@@ -129,8 +144,8 @@ export default function MePage() {
           <AnimatedSection delay={0.3}>
             <GlassCard dark>
               <div className="flex items-start gap-3">
-                <div className="p-2 rounded-xl bg-[#D4AF37]/10">
-                  <Bus size={18} className="text-[#D4AF37]" />
+                <div className="rounded-xl bg-brand-gold/10" style={{ padding: '8px' }}>
+                  <Bus size={18} className="text-brand-gold" />
                 </div>
                 <div>
                   <p className="text-white/60 text-sm">My Transport</p>
@@ -143,11 +158,15 @@ export default function MePage() {
                   {participant.transport.meeting_point && (
                     <p className="text-white/40 text-sm">📍 Meeting: {participant.transport.meeting_point}</p>
                   )}
-                  <span className={`text-xs px-2 py-0.5 rounded-full mt-1 inline-block ${
-                    participant.transport.status === 'active' 
-                      ? 'bg-green-500/20 text-green-400' 
-                      : 'bg-red-500/20 text-red-400'
-                  }`}>
+                  <span
+                    className="text-xs rounded-full mt-1"
+                    style={{
+                      display: 'inline-block',
+                      padding: '2px 8px',
+                      background: participant.transport.status === 'active' ? 'rgba(34,197,94,0.2)' : 'rgba(239,68,68,0.2)',
+                      color: participant.transport.status === 'active' ? '#4ADE80' : '#F87171',
+                    }}
+                  >
                     {participant.transport.status === 'active' ? '🟢 Active' : '🔴 Departed'}
                   </span>
                 </div>

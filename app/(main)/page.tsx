@@ -16,6 +16,8 @@ import toast from 'react-hot-toast'
 export const dynamic = 'force-dynamic'
 export const fetchCache = 'force-no-store'
 
+const PAGE_BG = 'linear-gradient(to bottom, #0A0A0A, #0A0A0A, #1A1A1A)'
+
 export default function HomePage() {
   const [participant, setParticipant] = useState<Participant | null>(null)
   const [liveStatus, setLiveStatus] = useState<LiveStatus>({ now: null, next: null, later: [] })
@@ -66,7 +68,7 @@ export default function HomePage() {
   if (loading) return <LoadingSkeleton />
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-[#0A0A0A] via-[#0A0A0A] to-[#1A1A1A] pb-24">
+    <div className="min-h-screen pb-24" style={{ background: PAGE_BG }}>
       <div className="p-4 space-y-4 max-w-md mx-auto">
         {/* Hero Section - Simple Logo */}
         <AnimatedSection>
@@ -75,26 +77,33 @@ export default function HomePage() {
               initial={{ scale: 0.8, opacity: 0 }}
               animate={{ scale: 1, opacity: 1 }}
               transition={{ duration: 0.6 }}
-              className="w-24 h-24 mx-auto mb-3"
+              style={{ width: '96px', height: '96px', margin: '0 auto 12px' }}
             >
-              <div className="w-24 h-24 rounded-full bg-[#D4AF37]/20 border-2 border-[#D4AF37] flex items-center justify-center mx-auto">
-                <span className="text-4xl font-bold text-[#D4AF37]">G</span>
+              <div
+                className="rounded-full border-2 border-brand-gold bg-brand-gold/20 flex items-center justify-center mx-auto"
+                style={{ width: '96px', height: '96px' }}
+              >
+                <span className="font-bold text-brand-gold" style={{ fontSize: '2.25rem' }}>G</span>
               </div>
             </motion.div>
-            
+
             <h1 className="text-2xl font-bold text-white">
               Good {new Date().getHours() < 12 ? 'Morning' : 'Afternoon'}, {participant?.full_name?.split(' ')[0] || 'Guest'} 👋
             </h1>
             <div className="flex items-center justify-center gap-2 mt-1">
-              <span className="inline-block w-2 h-2 rounded-full bg-[#D4AF37] animate-pulse"></span>
-              <p className="text-[#D4AF37]/60 text-sm">
+              <span
+                className="rounded-full bg-brand-gold animate-pulse"
+                style={{ display: 'inline-block', width: '8px', height: '8px' }}
+              />
+              <p className="text-sm" style={{ color: 'rgba(212,175,55,0.6)' }}>
                 DAY {getCurrentDay()} • RETREAT 2026
               </p>
             </div>
-            
+
             <button
               onClick={handleSignOut}
-              className="text-white/30 hover:text-[#D4AF37] transition-colors text-sm mt-2 flex items-center gap-1 mx-auto"
+              className="text-white/30 text-sm mt-2 flex items-center gap-1 mx-auto"
+              style={{ background: 'transparent', border: 'none', cursor: 'pointer' }}
             >
               <LogOut size={14} /> Sign Out
             </button>
@@ -111,11 +120,11 @@ export default function HomePage() {
           <AnimatedSection delay={0.2}>
             <div className="space-y-2">
               <div className="flex items-center gap-2">
-                <div className="h-px flex-1 bg-[#D4AF37]/10"></div>
-                <h3 className="text-xs font-semibold text-[#D4AF37]/60 uppercase tracking-wider flex items-center gap-1">
+                <div className="h-px flex-1 bg-brand-gold/10" />
+                <h3 className="text-xs font-semibold uppercase tracking-wider flex items-center gap-1" style={{ color: 'rgba(212,175,55,0.6)' }}>
                   <span>📢</span> Latest Announcements
                 </h3>
-                <div className="h-px flex-1 bg-[#D4AF37]/10"></div>
+                <div className="h-px flex-1 bg-brand-gold/10" />
               </div>
               {announcements.map((announcement, index) => (
                 <AnnouncementCard key={announcement.id} announcement={announcement} index={index} />
@@ -124,7 +133,7 @@ export default function HomePage() {
           </AnimatedSection>
         )}
 
-        <div className="h-4"></div>
+        <div style={{ height: '16px' }} />
       </div>
     </div>
   )

@@ -22,6 +22,7 @@ const categories = [
 export const dynamic = 'force-dynamic'
 export const fetchCache = 'force-no-store'
 
+const PAGE_BG = 'linear-gradient(to bottom, #0A0A0A, #0A0A0A, #1A1A1A)'
 
 export default function HelpPage() {
   const [loading, setLoading] = useState(false)
@@ -70,7 +71,7 @@ export default function HelpPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-[#0A0A0A] via-[#0A0A0A] to-[#1A1A1A] p-4 pb-24">
+    <div className="min-h-screen p-4 pb-24" style={{ background: PAGE_BG }}>
       <AnimatedSection>
         <h1 className="text-2xl font-bold text-white mb-4">Get Help</h1>
       </AnimatedSection>
@@ -78,8 +79,8 @@ export default function HelpPage() {
       <AnimatedSection delay={0.1}>
         <GlassCard dark>
           <div className="flex items-center gap-3 mb-4">
-            <div className="p-3 rounded-full bg-[#D4AF37]/20">
-              <LifeBuoy size={24} className="text-[#D4AF37]" />
+            <div className="rounded-full bg-brand-gold/20" style={{ padding: '12px' }}>
+              <LifeBuoy size={24} className="text-brand-gold" />
             </div>
             <div>
               <h2 className="text-white font-semibold">How can we help?</h2>
@@ -89,7 +90,7 @@ export default function HelpPage() {
 
           <form onSubmit={handleSubmit} className="space-y-4">
             <div>
-              <label className="block text-white/80 text-sm font-medium mb-1">
+              <label className="text-white/80 text-sm font-medium mb-1" style={{ display: 'block' }}>
                 Category
               </label>
               <select
@@ -98,9 +99,9 @@ export default function HelpPage() {
                 className="input-gold"
                 required
               >
-                <option value="" className="text-black">Select a category</option>
+                <option value="">Select a category</option>
                 {categories.map((cat) => (
-                  <option key={cat.value} value={cat.value} className="text-black">
+                  <option key={cat.value} value={cat.value}>
                     {cat.label}
                   </option>
                 ))}
@@ -108,7 +109,7 @@ export default function HelpPage() {
             </div>
 
             <div>
-              <label className="block text-white/80 text-sm font-medium mb-1">
+              <label className="text-white/80 text-sm font-medium mb-1" style={{ display: 'block' }}>
                 Describe your issue
               </label>
               <textarea

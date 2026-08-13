@@ -1,33 +1,42 @@
 // components/ui/LoadingSkeleton.tsx
 'use client'
 
+function Pulse({ width, height, radius = '0.75rem' }: { width: string; height: string; radius?: string }) {
+  return (
+    <div
+      className="bg-brand-gold/10 animate-pulse"
+      style={{ width, height, borderRadius: radius }}
+    />
+  )
+}
+
 export function LoadingSkeleton() {
   return (
-    <div className="min-h-screen bg-[#0A0A0A] p-4">
+    <div className="min-h-screen bg-brand-black p-4">
       <div className="space-y-4 max-w-md mx-auto">
         <div className="flex justify-between items-start">
           <div className="space-y-2">
-            <div className="h-8 w-48 rounded-lg bg-[#D4AF37]/10 animate-pulse"></div>
-            <div className="h-4 w-32 rounded-lg bg-[#D4AF37]/10 animate-pulse"></div>
+            <Pulse width="12rem" height="2rem" />
+            <Pulse width="8rem" height="1rem" />
           </div>
-          <div className="h-8 w-20 rounded-lg bg-[#D4AF37]/10 animate-pulse"></div>
+          <Pulse width="5rem" height="2rem" />
         </div>
 
         <div className="glass-card-dark space-y-4">
           <div className="flex items-center gap-2">
-            <div className="h-3 w-3 rounded-full bg-[#D4AF37]/20 animate-pulse"></div>
-            <div className="h-4 w-32 rounded-lg bg-[#D4AF37]/10 animate-pulse"></div>
+            <Pulse width="12px" height="12px" radius="9999px" />
+            <Pulse width="8rem" height="1rem" />
           </div>
-          <div className="h-8 w-3/4 rounded-lg bg-[#D4AF37]/10 animate-pulse"></div>
+          <Pulse width="75%" height="2rem" />
           <div className="flex gap-4">
-            <div className="h-5 w-32 rounded-lg bg-[#D4AF37]/10 animate-pulse"></div>
-            <div className="h-5 w-32 rounded-lg bg-[#D4AF37]/10 animate-pulse"></div>
+            <Pulse width="8rem" height="1.25rem" />
+            <Pulse width="8rem" height="1.25rem" />
           </div>
         </div>
 
         <div className="grid grid-cols-4 gap-3">
           {[1, 2, 3, 4].map((i) => (
-            <div key={i} className="h-24 rounded-xl bg-[#D4AF37]/10 animate-pulse"></div>
+            <Pulse key={i} width="100%" height="6rem" />
           ))}
         </div>
       </div>
@@ -37,19 +46,21 @@ export function LoadingSkeleton() {
 
 export function ProgrammeSkeleton() {
   return (
-    <div className="min-h-screen bg-[#0A0A0A] p-4">
+    <div className="min-h-screen bg-brand-black p-4">
       <div className="space-y-4 max-w-md mx-auto">
-        <div className="h-8 w-40 rounded-lg bg-[#D4AF37]/10 animate-pulse"></div>
-        <div className="flex gap-2 overflow-x-auto pb-4">
+        <Pulse width="10rem" height="2rem" />
+        <div className="flex gap-2 overflow-x-auto" style={{ paddingBottom: '16px' }}>
           {[1, 2, 3, 4, 5].map((i) => (
-            <div key={i} className="h-10 w-16 rounded-xl bg-[#D4AF37]/10 animate-pulse flex-shrink-0"></div>
+            <div key={i} className="flex-shrink-0">
+              <Pulse width="4rem" height="2.5rem" />
+            </div>
           ))}
         </div>
         {[1, 2, 3].map((i) => (
           <div key={i} className="glass-card-dark space-y-2">
-            <div className="h-6 w-3/4 rounded-lg bg-[#D4AF37]/10 animate-pulse"></div>
-            <div className="h-4 w-1/2 rounded-lg bg-[#D4AF37]/10 animate-pulse"></div>
-            <div className="h-4 w-1/3 rounded-lg bg-[#D4AF37]/10 animate-pulse"></div>
+            <Pulse width="75%" height="1.5rem" />
+            <Pulse width="50%" height="1rem" />
+            <Pulse width="33%" height="1rem" />
           </div>
         ))}
       </div>
@@ -59,17 +70,25 @@ export function ProgrammeSkeleton() {
 
 export function MeSkeleton() {
   return (
-    <div className="min-h-screen bg-[#0A0A0A] p-4">
+    <div className="min-h-screen bg-brand-black p-4">
       <div className="space-y-4 max-w-md mx-auto">
         <div className="glass-card-dark text-center">
-          <div className="h-24 w-24 rounded-full bg-[#D4AF37]/10 animate-pulse mx-auto"></div>
-          <div className="h-6 w-40 rounded-lg bg-[#D4AF37]/10 animate-pulse mx-auto mt-4"></div>
-          <div className="h-4 w-32 rounded-lg bg-[#D4AF37]/10 animate-pulse mx-auto mt-2"></div>
-          <div className="h-32 w-32 rounded-xl bg-[#D4AF37]/10 animate-pulse mx-auto mt-4"></div>
+          <div style={{ margin: '0 auto' }}>
+            <Pulse width="6rem" height="6rem" radius="9999px" />
+          </div>
+          <div style={{ margin: '1rem auto 0' }}>
+            <Pulse width="10rem" height="1.5rem" />
+          </div>
+          <div style={{ margin: '0.5rem auto 0' }}>
+            <Pulse width="8rem" height="1rem" />
+          </div>
+          <div style={{ margin: '1rem auto 0' }}>
+            <Pulse width="8rem" height="8rem" />
+          </div>
         </div>
         <div className="glass-card-dark space-y-2">
-          <div className="h-5 w-32 rounded-lg bg-[#D4AF37]/10 animate-pulse"></div>
-          <div className="h-4 w-48 rounded-lg bg-[#D4AF37]/10 animate-pulse"></div>
+          <Pulse width="8rem" height="1.25rem" />
+          <Pulse width="12rem" height="1rem" />
         </div>
       </div>
     </div>
