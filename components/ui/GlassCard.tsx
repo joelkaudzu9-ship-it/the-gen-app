@@ -2,7 +2,7 @@
 'use client'
 
 import { motion } from 'framer-motion'
-import { ReactNode } from 'react'
+import { ReactNode, CSSProperties } from 'react'
 
 interface GlassCardProps {
   children: ReactNode
@@ -11,15 +11,17 @@ interface GlassCardProps {
   hover?: boolean
   delay?: number
   onClick?: () => void
+  style?: CSSProperties
 }
 
-export function GlassCard({ 
-  children, 
-  className = '', 
+export function GlassCard({
+  children,
+  className = '',
   dark = false,
   hover = true,
   delay = 0,
-  onClick
+  onClick,
+  style,
 }: GlassCardProps) {
   return (
     <motion.div
@@ -28,6 +30,7 @@ export function GlassCard({
       transition={{ duration: 0.5, delay }}
       whileHover={hover ? { y: -4, transition: { duration: 0.2 } } : {}}
       onClick={onClick}
+      style={style}
       className={`
         ${dark ? 'glass-card-dark' : 'glass-card'}
         ${onClick ? 'cursor-pointer' : ''}
