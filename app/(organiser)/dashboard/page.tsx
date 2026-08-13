@@ -15,8 +15,11 @@ import {
   Eye,
   CheckCircle,
   Clock,
+  Camera
 } from 'lucide-react'
-import { QRScanner } from '@/components/organiser/QRScanner'
+// Remove the QRScanner import
+// import { QRScanner } from '@/components/organiser/QRScanner'
+import { ManualCheckIn } from '@/components/organiser/ManualCheckIn'
 import { AnnouncementPublisher } from '@/components/organiser/AnnouncementPublisher'
 import { HelpDesk } from '@/components/organiser/HelpDesk'
 import toast from 'react-hot-toast'
@@ -50,7 +53,7 @@ export default function DashboardPage() {
   const [stats, setStats] = useState<DashboardStats>(defaultStats)
   const [loading, setLoading] = useState(true)
   const [refreshing, setRefreshing] = useState(false)
-  const [activeTab, setActiveTab] = useState<'overview' | 'scanner' | 'announcements' | 'help'>('overview')
+  const [activeTab, setActiveTab] = useState<'overview' | 'checkin' | 'announcements' | 'help'>('overview')
 
   useEffect(() => {
     fetchStats()
@@ -235,7 +238,7 @@ export default function DashboardPage() {
       <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-hide">
         {[
           { id: 'overview', label: '📊 Overview' },
-          { id: 'scanner', label: '📷 Scanner' },
+          { id: 'checkin', label: '✅ Check-In' },
           { id: 'announcements', label: '📢 Announcements' },
           { id: 'help', label: '🆘 Help Desk' },
         ].map((tab) => (
@@ -279,7 +282,7 @@ export default function DashboardPage() {
           </GlassCard>
         )}
 
-        {activeTab === 'scanner' && <QRScanner />}
+        {activeTab === 'checkin' && <ManualCheckIn />}
         {activeTab === 'announcements' && <AnnouncementPublisher />}
         {activeTab === 'help' && <HelpDesk />}
       </div>
