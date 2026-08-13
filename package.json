@@ -3,8 +3,10 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
+    "dev": "next dev",
     "build": "next build",
-    "vercel-build": "next build"
+    "start": "next start",
+    "lint": "next lint"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.45.0",
@@ -24,6 +26,4 @@
     "@types/react-dom": "^18.0.0",
     "typescript": "^5.0.0"
   }
- 
 }
-
