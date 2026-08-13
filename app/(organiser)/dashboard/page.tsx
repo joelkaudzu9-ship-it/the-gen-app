@@ -48,7 +48,6 @@ const defaultStats: DashboardStats = {
 export default function DashboardPage() {
   const [stats, setStats] = useState<DashboardStats>(defaultStats)
   const [loading, setLoading] = useState(true)
-  const [refreshing, setRefreshing] = useState(false)
   const [activeTab, setActiveTab] = useState<'overview' | 'scanner' | 'announcements' | 'help'>('overview')
 
   useEffect(() => {
@@ -111,12 +110,10 @@ export default function DashboardPage() {
       toast.error('Failed to load dashboard')
     } finally {
       setLoading(false)
-      setRefreshing(false)
     }
   }
 
   const handleRefresh = async () => {
-    setRefreshing(true)
     await fetchStats()
     toast.success('Dashboard updated')
   }
@@ -136,10 +133,9 @@ export default function DashboardPage() {
         <span className="text-white/40 text-xs">Updated: {new Date().toLocaleTimeString()}</span>
         <button
           onClick={handleRefresh}
-          disabled={refreshing}
           className="text-white/40 hover:text-[#D4AF37] transition-colors p-1"
         >
-          <RefreshCw size={16} className={refreshing ? 'animate-spin' : ''} />
+          <RefreshCw size={16} />
         </button>
       </div>
 

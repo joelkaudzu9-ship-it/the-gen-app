@@ -144,20 +144,20 @@ export default function AuthForm({ mode, onSuccess }: AuthFormProps) {
         <GlassCard dark className="p-8">
           {/* Logo */}
           <div className="text-center mb-8">
-            <div className="relative w-20 h-20 mx-auto mb-4">
+            <div className="relative w-24 h-24 mx-auto mb-4">
               {!imageError ? (
                 <Image
                   src="/logo-gold.png"
                   alt="THE GEN-APP Logo"
-                  width={80}
-                  height={80}
-                  className="w-20 h-20 object-contain"
+                  width={96}
+                  height={96}
+                  className="w-24 h-24 object-contain"
                   priority
                   onError={() => setImageError(true)}
                 />
               ) : (
-                <div className="w-20 h-20 rounded-full bg-[#D4AF37]/20 border-2 border-[#D4AF37] flex items-center justify-center mx-auto">
-                  <span className="text-3xl font-bold text-[#D4AF37]">G</span>
+                <div className="w-24 h-24 rounded-full bg-[#D4AF37]/20 border-2 border-[#D4AF37] flex items-center justify-center mx-auto">
+                  <span className="text-4xl font-bold text-[#D4AF37]">G</span>
                 </div>
               )}
             </div>

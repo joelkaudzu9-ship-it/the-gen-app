@@ -16,8 +16,14 @@ const navItems = [
 
 export function BottomNav() {
   const pathname = usePathname()
+  
+  // Check if the current path is login, register, or dashboard
+  const hideNav = pathname === '/login' || 
+                  pathname === '/register' || 
+                  pathname === '/dashboard' ||
+                  pathname?.startsWith('/dashboard')
 
-  if (pathname === '/login' || pathname === '/register' || pathname === '/dashboard') {
+  if (hideNav) {
     return null
   }
 
