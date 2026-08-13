@@ -113,11 +113,6 @@ export default function DashboardPage() {
     }
   }
 
-  const handleRefresh = async () => {
-    await fetchStats()
-    toast.success('Dashboard updated')
-  }
-
   if (loading) {
     return (
       <div className="flex items-center justify-center min-h-[60vh]">
@@ -131,12 +126,6 @@ export default function DashboardPage() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <span className="text-white/40 text-xs">Updated: {new Date().toLocaleTimeString()}</span>
-        <button
-          onClick={handleRefresh}
-          className="text-white/40 hover:text-[#D4AF37] transition-colors p-1"
-        >
-          <RefreshCw size={16} />
-        </button>
       </div>
 
       {/* Stats - Compact */}

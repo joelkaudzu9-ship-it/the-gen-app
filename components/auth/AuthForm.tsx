@@ -9,12 +9,11 @@ import { motion } from 'framer-motion'
 import toast from 'react-hot-toast'
 import { Eye, EyeOff } from 'lucide-react'
 import Image from 'next/image'
-import { initOneSignal, subscribeToNotifications } from '@/lib/onesignal'
 
 const ADMIN_EMAILS = [
-    'gizmokzu@gmail.com',
-    'joelkaudzu9@gmail.com',
-    'elshaddaimpaso@gmail.com',
+  'gizmokzu@gmail.com',
+  'joelkaudzu9@gmail.com',
+  'elshaddaimpaso@gmail.com',
 ]
 
 function isAdmin(email: string | undefined): boolean {
@@ -22,9 +21,6 @@ function isAdmin(email: string | undefined): boolean {
   return ADMIN_EMAILS.includes(email.toLowerCase())
 }
 
-// ============================================
-// AUTH FORM COMPONENT
-// ============================================
 interface AuthFormProps {
   mode: 'login' | 'register'
   onSuccess?: () => void
@@ -38,25 +34,18 @@ export default function AuthForm({ mode, onSuccess }: AuthFormProps) {
   const [showPassword, setShowPassword] = useState(false)
   const [imageError, setImageError] = useState(false)
 
-  // ============================================
-  // HANDLE FORM SUBMISSION
-  // ============================================
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setLoading(true)
 
     try {
       if (mode === 'login') {
-        // ============================================
-        // LOGIN
-        // ============================================
         const { data, error } = await supabase.auth.signInWithPassword({
           email,
           password,
         })
         if (error) throw error
 
-        // Check if user is admin
         const userEmail = data.user?.email
         const admin = isAdmin(userEmail)
 
@@ -69,22 +58,15 @@ export default function AuthForm({ mode, onSuccess }: AuthFormProps) {
               border: '1px solid rgba(212, 175, 55, 0.3)',
             },
           })
-          // Redirect to dashboard
           setTimeout(() => {
             window.location.href = '/dashboard'
           }, 500)
           return
         }
 
-        // Regular user
         toast.success('Welcome back! 👋')
-        initOneSignal()
-        subscribeToNotifications(email, data.user.id)
         onSuccess?.()
       } else {
-        // ============================================
-        // REGISTER
-        // ============================================
         const { data, error } = await supabase.auth.signUp({
           email,
           password,
@@ -95,16 +77,12 @@ export default function AuthForm({ mode, onSuccess }: AuthFormProps) {
         })
         if (error) throw error
 
-        // Create participant record
         if (data.user) {
-          // If this is an admin registration, add admin role
           const isAdminUser = isAdmin(email)
           const participantData: any = {
             user_id: data.user.id,
             full_name: fullName,
           }
-
-          // Add role if admin
           if (isAdminUser) {
             participantData.role = 'admin'
           }
@@ -116,12 +94,10 @@ export default function AuthForm({ mode, onSuccess }: AuthFormProps) {
           if (insertError) throw insertError
         }
 
-        toast.success('Account created! Please sign in. 🎉')
-        initOneSignal()
-        subscribeToNotifications(email, data.user?.id || '')
+        toast.success('Account created! Please check your email to confirm. 🎉')
         setTimeout(() => {
           window.location.href = '/login'
-        }, 1500)
+        }, 3000)
       }
     } catch (error: any) {
       toast.error(error.message)
@@ -130,9 +106,6 @@ export default function AuthForm({ mode, onSuccess }: AuthFormProps) {
     }
   }
 
-  // ============================================
-  // RENDER
-  // ============================================
   return (
     <div className="min-h-screen flex items-center justify-center p-4 bg-[#0A0A0A]">
       <motion.div
@@ -142,7 +115,7 @@ export default function AuthForm({ mode, onSuccess }: AuthFormProps) {
         className="w-full max-w-md"
       >
         <GlassCard dark className="p-8">
-          {/* Logo */}
+          {/* ===== LOGO ===== */}
           <div className="text-center mb-8">
             <div className="relative w-24 h-24 mx-auto mb-4">
               {!imageError ? (
@@ -165,7 +138,7 @@ export default function AuthForm({ mode, onSuccess }: AuthFormProps) {
             <p className="text-white/60 mt-1 text-sm">Generation Family Retreat 2026</p>
           </div>
 
-          {/* Form */}
+          {/* ===== FORM ===== */}
           <form onSubmit={handleSubmit} className="space-y-4">
             {/* Full Name - Only for Register */}
             {mode === 'register' && (
@@ -181,7 +154,7 @@ export default function AuthForm({ mode, onSuccess }: AuthFormProps) {
                   type="text"
                   value={fullName}
                   onChange={(e) => setFullName(e.target.value)}
-                  className="input-gold"
+                  className="w-full px-4 py-3 rounded-2xl border border-white/10 bg-white/5 text-white focus:border-[#D4AF37] focus:ring-2 focus:ring-[#D4AF37]/20 transition-all duration-300 placeholder:text-white/30"
                   placeholder="Enter your full name"
                   required={mode === 'register'}
                 />
@@ -197,13 +170,13 @@ export default function AuthForm({ mode, onSuccess }: AuthFormProps) {
                 type="email"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                className="input-gold"
+                className="w-full px-4 py-3 rounded-2xl border border-white/10 bg-white/5 text-white focus:border-[#D4AF37] focus:ring-2 focus:ring-[#D4AF37]/20 transition-all duration-300 placeholder:text-white/30"
                 placeholder="you@example.com"
                 required
               />
             </div>
 
-            {/* Password */}
+            {/* Password with Eye Icon */}
             <div>
               <label className="block text-white/80 text-sm font-medium mb-1">
                 Password
@@ -213,7 +186,7 @@ export default function AuthForm({ mode, onSuccess }: AuthFormProps) {
                   type={showPassword ? 'text' : 'password'}
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
-                  className="input-gold pr-12"
+                  className="w-full px-4 py-3 rounded-2xl border border-white/10 bg-white/5 text-white focus:border-[#D4AF37] focus:ring-2 focus:ring-[#D4AF37]/20 transition-all duration-300 placeholder:text-white/30 pr-12"
                   placeholder="••••••••"
                   required
                   minLength={6}
@@ -221,7 +194,8 @@ export default function AuthForm({ mode, onSuccess }: AuthFormProps) {
                 <button
                   type="button"
                   onClick={() => setShowPassword(!showPassword)}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-white/40 hover:text-white/60 transition-colors"
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-white/40 hover:text-[#D4AF37] transition-colors p-1"
+                  aria-label={showPassword ? 'Hide password' : 'Show password'}
                 >
                   {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
                 </button>
@@ -234,7 +208,7 @@ export default function AuthForm({ mode, onSuccess }: AuthFormProps) {
             </GoldButton>
           </form>
 
-          {/* Toggle between Login/Register */}
+          {/* ===== TOGGLE BETWEEN LOGIN/REGISTER ===== */}
           <div className="mt-6 text-center">
             <p className="text-white/40 text-sm">
               {mode === 'login' ? "Don't have an account? " : "Already have an account? "}
@@ -247,7 +221,7 @@ export default function AuthForm({ mode, onSuccess }: AuthFormProps) {
             </p>
           </div>
 
-          {/* Admin Hint - Only shown if trying to access admin */}
+          {/* Admin Hint */}
           {mode === 'login' && (
             <div className="mt-4 text-center">
               <p className="text-white/20 text-xs">
