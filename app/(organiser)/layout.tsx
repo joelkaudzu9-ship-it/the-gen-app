@@ -7,7 +7,6 @@ import { useRouter } from 'next/navigation'
 import { Shield, LogOut } from 'lucide-react'
 import toast from 'react-hot-toast'
 
-// Local admin check function
 function isAdmin(email: string | undefined): boolean {
   const ADMIN_EMAILS = [
     'gizmokzu@gmail.com',
@@ -34,14 +33,14 @@ export default function OrganiserLayout({
   async function checkAccess() {
     try {
       const { data: { user } } = await supabase.auth.getUser()
-      
+
       if (!user) {
         router.push('/login')
         return
       }
 
       const admin = isAdmin(user.email)
-      
+
       if (!admin) {
         toast.error('Access denied. Admin only.')
         router.push('/')
@@ -65,8 +64,11 @@ export default function OrganiserLayout({
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-[#0A0A0A]">
-        <div className="animate-spin rounded-full h-12 w-12 border-4 border-[#D4AF37] border-t-transparent"></div>
+      <div className="min-h-screen flex items-center justify-center bg-brand-black">
+        <div
+          className="animate-spin rounded-full"
+          style={{ width: 48, height: 48, border: '4px solid #D4AF37', borderTopColor: 'transparent' }}
+        />
       </div>
     )
   }
@@ -76,19 +78,27 @@ export default function OrganiserLayout({
   }
 
   return (
-    <div className="min-h-screen bg-[#0A0A0A]">
-      <div className="max-w-7xl mx-auto px-4 py-6">
+    <div className="min-h-screen bg-brand-black">
+      <div className="mx-auto p-4" style={{ maxWidth: '1280px' }}>
         {/* Header with Styled Sign Out Button */}
-        <div className="flex items-center justify-between mb-6">
+        <div className="flex items-center justify-between mb-4">
           <div className="flex items-center gap-3">
-            <div className="p-2 rounded-xl bg-[#D4AF37]/10">
-              <Shield size={24} className="text-[#D4AF37]" />
+            <div className="rounded-xl bg-brand-gold/10" style={{ padding: '8px' }}>
+              <Shield size={24} className="text-brand-gold" />
             </div>
             <h1 className="text-xl font-bold text-white">Organiser Dashboard</h1>
           </div>
           <button
             onClick={handleSignOut}
-            className="flex items-center gap-2 px-4 py-2 rounded-xl bg-red-500/10 border border-red-500/20 text-red-400 hover:bg-red-500/20 transition-all duration-300 text-sm font-medium"
+            className="flex items-center gap-2 rounded-xl text-sm font-medium"
+            style={{
+              padding: '8px 16px',
+              background: 'rgba(239, 68, 68, 0.1)',
+              border: '1px solid rgba(239, 68, 68, 0.2)',
+              color: '#F87171',
+              transition: 'all 0.3s ease',
+              cursor: 'pointer',
+            }}
           >
             <LogOut size={16} />
             Sign Out
