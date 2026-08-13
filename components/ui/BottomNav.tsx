@@ -1,10 +1,12 @@
 // components/ui/BottomNav.tsx
 'use client'
 
+import { useEffect, useState } from 'react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { motion } from 'framer-motion'
 import { Home, Calendar, User, LifeBuoy, BookOpen } from 'lucide-react'
+import { supabase } from '@/lib/supabase'
 
 const navItems = [
   { icon: Home, label: 'Home', href: '/' },
@@ -16,19 +18,27 @@ const navItems = [
 
 export function BottomNav() {
   const pathname = usePathname()
+  const [isAuthed, setIsAuthed] = useState<boolean | null>(null) // null = still checking
 
-  // Check if we're on login/register OR if user is not authenticated
-  // Since login renders at root (/), we need to hide nav when no session
-  // But we can't check session here directly without causing hydration issues
+  useEffect(() => {
+    supabase.auth.getSession().then(({ data }) => {
+      setIsAuthed(!!data.session)
+    })
 
-  // Option 1: Hide on specific paths
-  const authPaths = ['/login', '/register', '/']
-  const isAuthPage = authPaths.includes(pathname || '') 
-  
-  // Option 2: Hide if the page contains login/register in the path
-  // or if the pathname is exactly '/'
-  
-  if (pathname === '/' || pathname === '/login' || pathname === '/register' || pathname?.startsWith('/dashboard')) {
+    const { data: listener } = supabase.auth.onAuthStateChange((_event, session) => {
+      setIsAuthed(!!session)
+    })
+
+    return () => listener.subscription.unsubscribe()
+  }, [])
+
+  // Always hide on the dashboard, regardless of auth state
+  if (pathname?.startsWith('/dashboard')) {
+    return null
+  }
+
+  // Still checking auth, or not logged in — don't show the nav
+  if (isAuthed !== true) {
     return null
   }
 
@@ -51,8 +61,8 @@ export function BottomNav() {
                 <Icon
                   size={24}
                   className={`transition-all duration-300 ${
-                    isActive 
-                      ? 'text-[#D4AF37] drop-shadow-[0_0_12px_rgba(212,175,55,0.4)]' 
+                    isActive
+                      ? 'text-[#D4AF37] drop-shadow-[0_0_12px_rgba(212,175,55,0.4)]'
                       : 'text-gray-500 group-hover:text-[#D4AF37]/70'
                   }`}
                   strokeWidth={isActive ? 2.5 : 2}
