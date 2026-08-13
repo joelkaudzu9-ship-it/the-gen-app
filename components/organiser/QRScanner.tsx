@@ -7,18 +7,20 @@ import { GlassCard } from '@/components/ui/GlassCard'
 import { GoldButton } from '@/components/ui/GoldButton'
 import toast from 'react-hot-toast'
 import { Camera, X, CheckCircle, AlertTriangle, Clock, CameraOff } from 'lucide-react'
-import MultiQRScanner from 'multi-qr-scanner-poc'
+import QrScanner from 'qr-scanner'
 
 export function QRScanner() {
   const [scanning, setScanning] = useState(false)
-  const [processing, setProcessing] = useState(false)
   const [scanResult, setScanResult] = useState<{
     participant: any
     success: boolean
     message: string
   } | null>(null)
+  const [loading, setLoading] = useState(false)
   const [recentCheckins, setRecentCheckins] = useState<any[]>([])
-  const [scannerKey, setScannerKey] = useState(0)
+  const [cameraReady, setCameraReady] = useState(false)
+  const videoRef = useRef<HTMLVideoElement>(null)
+  const scannerRef = useRef<QrScanner | null>(null)
   const isMounted = useRef(true)
 
   useEffect(() => {
@@ -29,6 +31,7 @@ export function QRScanner() {
     return () => {
       isMounted.current = false
       clearInterval(interval)
+      stopScanner()
     }
   }, [])
 
@@ -45,33 +48,86 @@ export function QRScanner() {
     }
   }
 
-  const handleDetected = async (codes: any[]) => {
-    if (!codes || codes.length === 0 || processing) return
+  const startScanner = async () => {
+    if (!isMounted.current) return
+    if (!videoRef.current) {
+      toast.error('Video element not found')
+      return
+    }
 
-    const detectedCode = codes[0]
-    const participantId = detectedCode?.rawValue || detectedCode?.data
-
-    if (!participantId) return
-
-    // Stop scanning and process
-    setProcessing(true)
-    setScanning(false)
-
-    await processCheckIn(participantId)
-
-    // Resume scanning after 3 seconds
-    setTimeout(() => {
-      if (isMounted.current) {
-        setProcessing(false)
-        setScanning(true)
-        setScannerKey(prev => prev + 1) // Reset scanner
+    try {
+      // Clean up existing scanner
+      if (scannerRef.current) {
+        scannerRef.current.stop()
+        scannerRef.current.destroy()
+        scannerRef.current = null
       }
-    }, 3000)
+
+      const scanner = new QrScanner(
+        videoRef.current,
+        (result) => {
+          if (result && result.data) {
+            onScanSuccess(result.data)
+          }
+        },
+        {
+          onDecodeError: () => {},
+          preferredCamera: 'environment',
+          highlightScanRegion: true,
+          highlightCodeOutline: true,
+        }
+      )
+
+      scannerRef.current = scanner
+      await scanner.start()
+      
+      if (isMounted.current) {
+        setScanning(true)
+        setCameraReady(true)
+        toast.success('Scanner ready! Point at a QR code.')
+      }
+    } catch (error: any) {
+      console.error('Scanner error:', error)
+      if (isMounted.current) {
+        if (error?.name === 'NotAllowedError') {
+          toast.error('Camera permission denied. Please allow camera access.')
+        } else if (error?.name === 'NotFoundError') {
+          toast.error('No camera found on this device.')
+        } else {
+          toast.error('Failed to start camera. Please try again.')
+        }
+      }
+    }
+  }
+
+  const stopScanner = () => {
+    try {
+      if (scannerRef.current) {
+        scannerRef.current.stop()
+        scannerRef.current.destroy()
+        scannerRef.current = null
+      }
+    } catch (error) {
+      console.error('Error stopping scanner:', error)
+    }
+    if (isMounted.current) {
+      setScanning(false)
+      setCameraReady(false)
+    }
+  }
+
+  const onScanSuccess = async (decodedText: string) => {
+    // Stop scanning immediately
+    stopScanner()
+    if (isMounted.current) {
+      await processCheckIn(decodedText)
+    }
   }
 
   const processCheckIn = async (participantId: string) => {
     if (!isMounted.current) return
 
+    setLoading(true)
     try {
       const { data: participant, error } = await supabase
         .from('participants')
@@ -130,21 +186,9 @@ export function QRScanner() {
         success: false,
         message: '❌ Check-in failed. Please try again.'
       })
+    } finally {
+      if (isMounted.current) setLoading(false)
     }
-  }
-
-  const startScanner = () => {
-    setScanning(true)
-    setProcessing(false)
-    setScanResult(null)
-    setScannerKey(prev => prev + 1)
-    toast.success('Scanner started!')
-  }
-
-  const stopScanner = () => {
-    setScanning(false)
-    setProcessing(false)
-    toast('Scanner stopped')
   }
 
   const handleManualCheckIn = async (e: React.FormEvent) => {
@@ -189,32 +233,27 @@ export function QRScanner() {
         </div>
 
         <div className="relative w-full overflow-hidden rounded-xl bg-[#1A1A1A] min-h-[300px]">
-          {scanning ? (
-            <MultiQRScanner
-              key={scannerKey}
-              onCodesDetected={handleDetected}
-              isEnabled={scanning}
-              fps={15}
-              facingMode="environment"
-            />
-          ) : (
+          <video
+            ref={videoRef}
+            className="w-full h-full object-cover"
+            playsInline
+            muted
+          />
+          {!scanning && (
             <div className="absolute inset-0 flex flex-col items-center justify-center text-white/30">
               <Camera size={48} className="mb-3" />
               <p className="text-sm">Click "Start Scanner" to scan QR codes</p>
               <p className="text-xs mt-1 text-white/20">Position QR code in frame</p>
             </div>
           )}
-          {processing && (
-            <div className="absolute inset-0 flex items-center justify-center bg-black/60 rounded-xl">
-              <div className="text-center">
-                <div className="animate-spin rounded-full h-10 w-10 border-3 border-[#D4AF37] border-t-transparent mx-auto mb-3" />
-                <p className="text-white text-sm font-medium">Processing check-in...</p>
-              </div>
+          {scanning && !cameraReady && (
+            <div className="absolute inset-0 flex items-center justify-center">
+              <div className="animate-spin rounded-full h-8 w-8 border-2 border-[#D4AF37] border-t-transparent"></div>
             </div>
           )}
         </div>
 
-        {scanning && !processing && (
+        {scanning && cameraReady && (
           <div className="mt-3 flex items-center gap-2 text-sm text-green-400">
             <span className="w-2 h-2 rounded-full bg-green-400 animate-pulse"></span>
             Scanner active - scanning for QR codes

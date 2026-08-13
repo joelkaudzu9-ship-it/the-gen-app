@@ -9,15 +9,11 @@ const nextConfig = {
       },
     ],
   },
-  // Remove standalone output - this causes the issue
-  // output: 'standalone',  // ← REMOVE THIS LINE
-  
-  // Disable static generation for problematic pages
-  staticPageGenerationTimeout: 120,
-  
-  // Ensure proper handling of client references
-  experimental: {
-    clientReferenceManifest: true,
+  // Remove experimental.clientReferenceManifest
+  // Add webpack configuration for qr-scanner
+  webpack: (config) => {
+    config.resolve.fallback = { fs: false, path: false }
+    return config
   },
 }
 
