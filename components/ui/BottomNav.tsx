@@ -18,7 +18,7 @@ const navItems = [
 
 export function BottomNav() {
   const pathname = usePathname()
-  const [isAuthed, setIsAuthed] = useState<boolean | null>(null) // null = still checking
+  const [isAuthed, setIsAuthed] = useState<boolean | null>(null)
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data }) => {
@@ -32,53 +32,69 @@ export function BottomNav() {
     return () => listener.subscription.unsubscribe()
   }, [])
 
-  // Always hide on the dashboard, regardless of auth state
-  if (pathname?.startsWith('/dashboard')) {
-    return null
-  }
-
-  // Still checking auth, or not logged in — don't show the nav
-  if (isAuthed !== true) {
-    return null
-  }
+  if (pathname?.startsWith('/dashboard')) return null
+  if (isAuthed !== true) return null
 
   return (
-    <nav className="fixed bottom-0 left-0 right-0 bg-[#0A0A0A] border-t border-[#D4AF37]/10 px-2 py-2 z-50">
-      <div className="max-w-md mx-auto flex justify-around items-center">
+    <nav
+      className="fixed left-0 right-0 z-50"
+      style={{ bottom: '16px', padding: '0 16px' }}
+    >
+      <div
+        className="max-w-md mx-auto flex justify-around items-center"
+        style={{
+          background: 'rgba(10, 10, 10, 0.85)',
+          backdropFilter: 'blur(20px)',
+          WebkitBackdropFilter: 'blur(20px)',
+          border: '1px solid rgba(212, 175, 55, 0.15)',
+          borderRadius: '24px',
+          boxShadow: '0 8px 32px rgba(0, 0, 0, 0.4)',
+          padding: '10px 8px',
+        }}
+      >
         {navItems.map(({ icon: Icon, label, href }) => {
           const isActive = pathname === href
           return (
             <Link
               key={href}
               href={href}
-              className="relative flex flex-col items-center gap-0.5 group py-1 px-2 rounded-lg transition-all duration-300"
+              className="relative flex flex-col items-center"
+              style={{ gap: '2px', padding: '6px 10px', borderRadius: '14px' }}
             >
-              <motion.div
-                whileHover={{ y: -2 }}
-                whileTap={{ scale: 0.9 }}
-                className="relative"
-              >
+              <motion.div whileTap={{ scale: 0.88 }} className="relative">
                 <Icon
-                  size={24}
-                  className={`transition-all duration-300 ${
-                    isActive
-                      ? 'text-[#D4AF37] drop-shadow-[0_0_12px_rgba(212,175,55,0.4)]'
-                      : 'text-gray-500 group-hover:text-[#D4AF37]/70'
-                  }`}
-                  strokeWidth={isActive ? 2.5 : 2}
+                  size={22}
+                  style={{
+                    color: isActive ? '#D4AF37' : 'rgba(255, 255, 255, 0.35)',
+                    filter: isActive ? 'drop-shadow(0 0 6px rgba(212, 175, 55, 0.5))' : 'none',
+                    transition: 'color 0.25s ease, filter 0.25s ease',
+                  }}
+                  strokeWidth={isActive ? 2.4 : 1.8}
                 />
                 {isActive && (
                   <motion.div
                     layoutId="bottom-nav-indicator"
-                    className="absolute -bottom-1 left-1/2 -translate-x-1/2 w-1.5 h-1.5 rounded-full bg-[#D4AF37] shadow-[0_0_12px_rgba(212,175,55,0.6)]"
-                    transition={{ type: 'spring', bounce: 0.2, duration: 0.6 }}
+                    className="absolute rounded-full"
+                    style={{
+                      bottom: '-8px',
+                      left: '50%',
+                      transform: 'translateX(-50%)',
+                      width: '4px',
+                      height: '4px',
+                      background: '#D4AF37',
+                      boxShadow: '0 0 6px rgba(212, 175, 55, 0.7)',
+                    }}
+                    transition={{ type: 'spring', bounce: 0.2, duration: 0.5 }}
                   />
                 )}
               </motion.div>
               <span
-                className={`text-[10px] font-medium transition-all duration-300 ${
-                  isActive ? 'text-[#D4AF37]' : 'text-gray-500 group-hover:text-[#D4AF37]/70'
-                }`}
+                className="font-medium"
+                style={{
+                  fontSize: '10px',
+                  color: isActive ? '#D4AF37' : 'rgba(255, 255, 255, 0.35)',
+                  transition: 'color 0.25s ease',
+                }}
               >
                 {label}
               </span>
