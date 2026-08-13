@@ -132,21 +132,21 @@ export default function AuthForm({ mode, onSuccess }: AuthFormProps) {
           </div>
 
           {/* FORM */}
-          <form onSubmit={handleSubmit} className="space-y-4">
+          <form onSubmit={handleSubmit} className="space-y-6">
             {mode === 'register' && (
               <motion.div
                 initial={{ opacity: 0, height: 0 }}
                 animate={{ opacity: 1, height: 'auto' }}
                 transition={{ duration: 0.3 }}
               >
-                <label className="block text-white/80 text-sm font-medium mb-1">
+                <label className="block text-white/80 text-sm font-medium mb-2">
                   Full Name
                 </label>
                 <input
                   type="text"
                   value={fullName}
                   onChange={(e) => setFullName(e.target.value)}
-                  className="w-full px-4 py-3 rounded-2xl border border-white/10 bg-white/5 text-white focus:border-[#D4AF37] focus:ring-2 focus:ring-[#D4AF37]/20 transition-all duration-300 placeholder:text-white/30"
+                  className="w-full px-5 py-4 rounded-2xl border border-white/10 bg-white/5 text-white text-base focus:border-[#D4AF37] focus:ring-2 focus:ring-[#D4AF37]/20 transition-all duration-300 placeholder:text-white/30"
                   placeholder="Enter your full name"
                   required={mode === 'register'}
                 />
@@ -154,21 +154,21 @@ export default function AuthForm({ mode, onSuccess }: AuthFormProps) {
             )}
 
             <div>
-              <label className="block text-white/80 text-sm font-medium mb-1">
+              <label className="block text-white/80 text-sm font-medium mb-2">
                 Email Address
               </label>
               <input
                 type="email"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                className="w-full px-4 py-3 rounded-2xl border border-white/10 bg-white/5 text-white focus:border-[#D4AF37] focus:ring-2 focus:ring-[#D4AF37]/20 transition-all duration-300 placeholder:text-white/30"
+                className="w-full px-5 py-4 rounded-2xl border border-white/10 bg-white/5 text-white text-base focus:border-[#D4AF37] focus:ring-2 focus:ring-[#D4AF37]/20 transition-all duration-300 placeholder:text-white/30"
                 placeholder="you@example.com"
                 required
               />
             </div>
 
             <div>
-              <label className="block text-white/80 text-sm font-medium mb-1">
+              <label className="block text-white/80 text-sm font-medium mb-2">
                 Password
               </label>
               <div className="relative">
@@ -176,7 +176,7 @@ export default function AuthForm({ mode, onSuccess }: AuthFormProps) {
                   type={showPassword ? 'text' : 'password'}
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
-                  className="w-full px-4 py-3 rounded-2xl border border-white/10 bg-white/5 text-white focus:border-[#D4AF37] focus:ring-2 focus:ring-[#D4AF37]/20 transition-all duration-300 placeholder:text-white/30 pr-12"
+                  className="w-full px-5 py-4 rounded-2xl border border-white/10 bg-white/5 text-white text-base focus:border-[#D4AF37] focus:ring-2 focus:ring-[#D4AF37]/20 transition-all duration-300 placeholder:text-white/30 pr-14"
                   placeholder="••••••••"
                   required
                   minLength={6}
@@ -184,10 +184,10 @@ export default function AuthForm({ mode, onSuccess }: AuthFormProps) {
                 <button
                   type="button"
                   onClick={() => setShowPassword(!showPassword)}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-white/40 hover:text-[#D4AF37] transition-colors p-1"
+                  className="absolute right-4 top-1/2 -translate-y-1/2 text-white/40 hover:text-[#D4AF37] transition-colors"
                   aria-label={showPassword ? 'Hide password' : 'Show password'}
                 >
-                  {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
+                  {showPassword ? <EyeOff size={22} /> : <Eye size={22} />}
                 </button>
               </div>
             </div>
@@ -195,7 +195,7 @@ export default function AuthForm({ mode, onSuccess }: AuthFormProps) {
             <button
               type="submit"
               disabled={loading}
-              className="w-full bg-gradient-to-r from-[#D4AF37] to-[#8B7500] text-black font-semibold py-3 px-4 rounded-2xl hover:shadow-[0_4px_25px_rgba(212,175,55,0.35)] transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed"
+              className="w-full bg-gradient-to-r from-[#D4AF37] to-[#8B7500] text-black font-semibold py-4 px-4 rounded-2xl hover:shadow-[0_4px_25px_rgba(212,175,55,0.35)] transition-all duration-300 text-base disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {loading ? (
                 <span className="flex items-center justify-center gap-2">
@@ -212,12 +212,12 @@ export default function AuthForm({ mode, onSuccess }: AuthFormProps) {
           </form>
 
           {/* TOGGLE */}
-          <div className="mt-6 text-center">
-            <p className="text-white/40 text-sm">
+          <div className="mt-8 text-center">
+            <p className="text-white/40 text-base">
               {mode === 'login' ? "Don't have an account? " : "Already have an account? "}
               <button
                 onClick={() => window.location.href = mode === 'login' ? '/register' : '/login'}
-                className="text-[#D4AF37] hover:underline transition-colors font-medium"
+                className="text-[#D4AF37] hover:underline transition-colors font-medium text-base"
               >
                 {mode === 'login' ? 'Sign Up' : 'Sign In'}
               </button>
