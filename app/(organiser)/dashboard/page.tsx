@@ -169,3 +169,93 @@ export default function DashboardPage() {
               style={{ top: '-4px', right: '-4px', width: 12, height: 12, background: '#EF4444' }}
             />
           )}
+        </GlassCard>
+      </div>
+
+      {/* Current Session - Compact */}
+      {stats.currentSession && (
+        <GlassCard dark style={{ padding: '12px 16px' }}>
+          <div className="flex items-center gap-3">
+            <div className="rounded-xl bg-brand-gold/10" style={{ padding: '8px' }}>
+              <Calendar size={18} className="text-brand-gold" />
+            </div>
+            <div className="flex-1" style={{ minWidth: 0 }}>
+              <p className="text-white/40 uppercase tracking-wider" style={{ fontSize: '10px' }}>Now</p>
+              <p
+                className="text-white font-semibold text-sm"
+                style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}
+              >
+                {stats.currentSession.title}
+              </p>
+              <p className="text-white/40 text-xs">
+                {stats.currentSession.location} • {new Date(stats.currentSession.start_time).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+              </p>
+            </div>
+            <span
+              className="flex items-center gap-1 rounded-full"
+              style={{ fontSize: '10px', background: 'rgba(239,68,68,0.2)', color: '#F87171', padding: '4px 8px' }}
+            >
+              <span className="rounded-full animate-pulse" style={{ width: 6, height: 6, background: '#EF4444' }} />
+              LIVE
+            </span>
+          </div>
+        </GlassCard>
+      )}
+
+      {/* Tabs - Compact */}
+      <div className="flex gap-1 overflow-x-auto" style={{ paddingBottom: '8px' }}>
+        {tabs.map((tab) => {
+          const isActive = activeTab === tab.id
+          return (
+            <button
+              key={tab.id}
+              onClick={() => setActiveTab(tab.id)}
+              className="rounded-xl text-sm font-medium whitespace-nowrap"
+              style={{
+                padding: '8px 16px',
+                transition: 'all 0.3s ease',
+                background: isActive ? GOLD_GRADIENT : 'rgba(255,255,255,0.05)',
+                color: isActive ? '#0A0A0A' : 'rgba(255,255,255,0.6)',
+                boxShadow: isActive ? '0 4px 25px rgba(212,175,55,0.35)' : 'none',
+                border: isActive ? 'none' : '1px solid rgba(255,255,255,0.1)',
+              }}
+            >
+              {tab.label}
+            </button>
+          )
+        })}
+      </div>
+
+      {/* Tab Content */}
+      <div className="mt-2">
+        {activeTab === 'overview' && (
+          <GlassCard dark>
+            <div className="flex items-center justify-between">
+              <span className="text-white/40 text-xs">Attendance</span>
+              <span className="text-white/60 text-sm font-medium">{stats.attendancePercentage || 0}%</span>
+            </div>
+            <div
+              className="mt-2 rounded-full"
+              style={{ height: '8px', background: 'rgba(255,255,255,0.1)', overflow: 'hidden' }}
+            >
+              <div
+                className="rounded-full"
+                style={{
+                  height: '100%',
+                  background: GOLD_GRADIENT,
+                  width: `${stats.attendancePercentage || 0}%`,
+                  transition: 'width 0.5s ease',
+                }}
+              />
+            </div>
+            <p className="text-white/40 text-xs mt-1">{stats.checkedIn || 0} of {stats.totalParticipants || 0} checked in</p>
+          </GlassCard>
+        )}
+
+        {activeTab === 'scanner' && <QRScanner />}
+        {activeTab === 'announcements' && <AnnouncementPublisher />}
+        {activeTab === 'help' && <HelpDesk />}
+      </div>
+    </div>
+  )
+}
