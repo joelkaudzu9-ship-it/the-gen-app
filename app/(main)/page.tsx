@@ -66,7 +66,7 @@ export default function HomePage() {
   if (loading) return <LoadingSkeleton />
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-[#0A0A0A] via-[#0A0A0A] to-[#1A1A1A] pb-4">
+    <div className="min-h-screen bg-gradient-to-b from-[#0A0A0A] via-[#0A0A0A] to-[#1A1A1A] pb-24">
       <div className="p-4 space-y-4 max-w-md mx-auto">
         {/* Hero Section - Simple Logo */}
         <AnimatedSection>

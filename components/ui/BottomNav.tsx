@@ -17,12 +17,12 @@ const navItems = [
 export function BottomNav() {
   const pathname = usePathname()
 
-  if (pathname === '/login' || pathname === '/register') {
+  if (pathname === '/login' || pathname === '/register' || pathname === '/dashboard') {
     return null
   }
 
   return (
-    <nav className="fixed bottom-0 left-0 right-0 bg-[#0A0A0A] border-t border-[#D4AF37]/20 px-2 py-2 z-50">
+    <nav className="fixed bottom-0 left-0 right-0 bg-[#0A0A0A] border-t border-[#D4AF37]/10 px-2 py-2 z-50">
       <div className="max-w-md mx-auto flex justify-around items-center">
         {navItems.map(({ icon: Icon, label, href }) => {
           const isActive = pathname === href
@@ -30,7 +30,7 @@ export function BottomNav() {
             <Link
               key={href}
               href={href}
-              className="relative flex flex-col items-center gap-0.5 group py-1 px-2 rounded-lg transition-all duration-300 hover:bg-[#D4AF37]/5"
+              className="relative flex flex-col items-center gap-0.5 group py-1 px-2 rounded-lg transition-all duration-300"
             >
               <motion.div
                 whileHover={{ y: -2 }}
@@ -42,10 +42,9 @@ export function BottomNav() {
                   className={`transition-all duration-300 ${
                     isActive 
                       ? 'text-[#D4AF37] drop-shadow-[0_0_12px_rgba(212,175,55,0.4)]' 
-                      : 'text-gray-600 group-hover:text-[#D4AF37]/70'
+                      : 'text-gray-500 group-hover:text-[#D4AF37]/70'
                   }`}
                   strokeWidth={isActive ? 2.5 : 2}
-                  fill={isActive ? '#D4AF37' : 'none'}
                 />
                 {isActive && (
                   <motion.div

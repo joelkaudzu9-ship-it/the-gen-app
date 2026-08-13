@@ -191,21 +191,6 @@ export function QRScanner() {
     }
   }
 
-  const handleManualCheckIn = async (e: React.FormEvent) => {
-    e.preventDefault()
-    const form = e.target as HTMLFormElement
-    const input = form.querySelector('input') as HTMLInputElement
-    const id = input?.value?.trim()
-
-    if (!id) {
-      toast.error('Please enter a participant ID')
-      return
-    }
-
-    await processCheckIn(id)
-    form.reset()
-  }
-
   return (
     <div className="space-y-4">
       <GlassCard dark>
@@ -259,20 +244,6 @@ export function QRScanner() {
             Scanner active - scanning for QR codes
           </div>
         )}
-
-        <div className="mt-4 pt-4 border-t border-white/10">
-          <p className="text-white/40 text-xs mb-2">Or enter participant ID manually:</p>
-          <form onSubmit={handleManualCheckIn} className="flex gap-2">
-            <input
-              type="text"
-              placeholder="Enter participant ID"
-              className="input-gold flex-1 text-sm"
-            />
-            <GoldButton type="submit" className="text-sm px-4 py-2">
-              Check In
-            </GoldButton>
-          </form>
-        </div>
       </GlassCard>
 
       {scanResult && (
