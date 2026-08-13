@@ -7,7 +7,7 @@ import { GlassCard } from '@/components/ui/GlassCard'
 import { GoldButton } from '@/components/ui/GoldButton'
 import toast from 'react-hot-toast'
 import { Camera, X, CheckCircle, AlertTriangle, Clock, CameraOff } from 'lucide-react'
-import { Html5Qrcode } from 'html5-qrcode'
+// Use dynamic import for html5-qrcode to avoid SSR issues
 
 export function QRScanner() {
   const [scanning, setScanning] = useState(false)
@@ -19,9 +19,17 @@ export function QRScanner() {
   } | null>(null)
   const [loading, setLoading] = useState(false)
   const [recentCheckins, setRecentCheckins] = useState<any[]>([])
-  const scannerRef = useRef<Html5Qrcode | null>(null)
-  const containerId = 'qr-reader-container'
+  const [Html5QrcodeLib, setHtml5QrcodeLib] = useState<any>(null)
+  const scannerRef = useRef<any>(null)
+  const containerId = useRef(`qr-reader-${Date.now()}`).current
   const isMounted = useRef(true)
+
+  // Load html5-qrcode dynamically on client side
+  useEffect(() => {
+    import('html5-qrcode').then((module) => {
+      setHtml5QrcodeLib(module.Html5Qrcode)
+    })
+  }, [])
 
   useEffect(() => {
     isMounted.current = true
@@ -49,7 +57,10 @@ export function QRScanner() {
   }
 
   const startScanner = async () => {
-    if (!isMounted.current) return
+    if (!isMounted.current || !Html5QrcodeLib) {
+      toast.error('Scanner library not loaded yet. Please try again.')
+      return
+    }
 
     try {
       // Clean up existing scanner
@@ -61,12 +72,15 @@ export function QRScanner() {
         scannerRef.current = null
       }
 
-      const html5QrCode = new Html5Qrcode(containerId)
+      // Wait a bit for DOM
+      await new Promise(resolve => setTimeout(resolve, 100))
+
+      const html5QrCode = new Html5QrcodeLib(containerId)
       scannerRef.current = html5QrCode
 
       const config = {
         fps: 15,
-        qrbox: { width: 280, height: 280 },
+        qrbox: { width: 250, height: 250 },
         aspectRatio: 1.0,
       }
 
@@ -82,10 +96,16 @@ export function QRScanner() {
         setScannerReady(true)
         toast.success('Scanner ready! Point at a QR code.')
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error('Scanner error:', error)
       if (isMounted.current) {
-        toast.error('Failed to start camera. Please allow camera permission.')
+        if (error?.message?.includes('Permission')) {
+          toast.error('Camera permission denied. Please allow camera access.')
+        } else if (error?.message?.includes('NotFound')) {
+          toast.error('No camera found on this device.')
+        } else {
+          toast.error('Failed to start camera. Please try again.')
+        }
       }
     }
   }
@@ -107,9 +127,7 @@ export function QRScanner() {
   }
 
   const onScanSuccess = async (decodedText: string) => {
-    // Stop scanning immediately
     await stopScanner()
-
     if (isMounted.current) {
       await processCheckIn(decodedText)
     }
@@ -117,9 +135,6 @@ export function QRScanner() {
 
   const onScanError = (error: any) => {
     // Ignore - this fires constantly while scanning
-    if (error && error.message && !error.message.includes('No QR code')) {
-      console.debug('Scan error:', error.message)
-    }
   }
 
   const processCheckIn = async (participantId: string) => {
