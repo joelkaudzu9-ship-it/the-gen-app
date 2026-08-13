@@ -78,7 +78,6 @@ export default function AuthForm({ mode, onSuccess }: AuthFormProps) {
         if (error) throw error
 
         if (data.user) {
-          // NO role column - just insert user_id and full_name
           const { error: insertError } = await supabase
             .from('participants')
             .insert({
@@ -109,18 +108,17 @@ export default function AuthForm({ mode, onSuccess }: AuthFormProps) {
         transition={{ duration: 0.6 }}
         className="w-full max-w-md"
       >
-        <GlassCard dark className="p-8">
+        <div className="bg-[#1A1A1A] rounded-3xl p-8 border border-[#D4AF37]/20 shadow-xl">
           {/* LOGO */}
           <div className="text-center mb-8">
-            <div className="relative w-24 h-24 mx-auto mb-4">
+            <div className="w-24 h-24 mx-auto mb-4">
               {!imageError ? (
-                <Image
+                <img
                   src="/logo-gold.png"
                   alt="THE GEN-APP Logo"
                   width={96}
                   height={96}
                   className="w-24 h-24 object-contain"
-                  priority
                   onError={() => setImageError(true)}
                 />
               ) : (
@@ -194,9 +192,23 @@ export default function AuthForm({ mode, onSuccess }: AuthFormProps) {
               </div>
             </div>
 
-            <GoldButton type="submit" loading={loading} fullWidth>
-              {mode === 'login' ? 'Sign In' : 'Create Account'}
-            </GoldButton>
+            <button
+              type="submit"
+              disabled={loading}
+              className="w-full bg-gradient-to-r from-[#D4AF37] to-[#8B7500] text-black font-semibold py-3 px-4 rounded-2xl hover:shadow-[0_4px_25px_rgba(212,175,55,0.35)] transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              {loading ? (
+                <span className="flex items-center justify-center gap-2">
+                  <svg className="animate-spin h-5 w-5" viewBox="0 0 24 24">
+                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" />
+                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
+                  </svg>
+                  Loading...
+                </span>
+              ) : (
+                mode === 'login' ? 'Sign In' : 'Create Account'
+              )}
+            </button>
           </form>
 
           {/* TOGGLE */}
@@ -214,12 +226,9 @@ export default function AuthForm({ mode, onSuccess }: AuthFormProps) {
 
           {mode === 'login' && (
             <div className="mt-4 text-center">
-              <p className="text-white/20 text-xs">
-                🔐 Admin users will be redirected to the dashboard
-              </p>
             </div>
           )}
-        </GlassCard>
+        </div>
       </motion.div>
     </div>
   )
