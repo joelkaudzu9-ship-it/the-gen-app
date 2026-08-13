@@ -16,14 +16,19 @@ const navItems = [
 
 export function BottomNav() {
   const pathname = usePathname()
-  
-  // HIDE on these pages
-  const authPages = ['/login', '/register']
-  const isAuthPage = authPages.some(page => 
-    pathname === page || pathname?.startsWith('/dashboard')
-  )
 
-  if (isAuthPage) {
+  // Check if we're on login/register OR if user is not authenticated
+  // Since login renders at root (/), we need to hide nav when no session
+  // But we can't check session here directly without causing hydration issues
+
+  // Option 1: Hide on specific paths
+  const authPaths = ['/login', '/register', '/']
+  const isAuthPage = authPaths.includes(pathname || '') 
+  
+  // Option 2: Hide if the page contains login/register in the path
+  // or if the pathname is exactly '/'
+  
+  if (pathname === '/' || pathname === '/login' || pathname === '/register' || pathname?.startsWith('/dashboard')) {
     return null
   }
 
