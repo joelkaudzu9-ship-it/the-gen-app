@@ -7,7 +7,6 @@ import { GlassCard } from '@/components/ui/GlassCard'
 import { GoldButton } from '@/components/ui/GoldButton'
 import toast from 'react-hot-toast'
 import { Camera, X, CheckCircle, AlertTriangle, Clock, CameraOff } from 'lucide-react'
-// Use dynamic import for html5-qrcode to avoid SSR issues
 
 export function QRScanner() {
   const [scanning, setScanning] = useState(false)
@@ -23,12 +22,21 @@ export function QRScanner() {
   const scannerRef = useRef<any>(null)
   const containerId = useRef(`qr-reader-${Date.now()}`).current
   const isMounted = useRef(true)
+  const [isInitialized, setIsInitialized] = useState(false)
 
   // Load html5-qrcode dynamically on client side
   useEffect(() => {
-    import('html5-qrcode').then((module) => {
-      setHtml5QrcodeLib(module.Html5Qrcode)
-    })
+    const loadLibrary = async () => {
+      try {
+        const module = await import('html5-qrcode')
+        setHtml5QrcodeLib(module.Html5Qrcode)
+        setIsInitialized(true)
+      } catch (error) {
+        console.error('Failed to load QR scanner library:', error)
+        toast.error('Failed to load scanner. Please refresh and try again.')
+      }
+    }
+    loadLibrary()
   }, [])
 
   useEffect(() => {
@@ -57,8 +65,10 @@ export function QRScanner() {
   }
 
   const startScanner = async () => {
-    if (!isMounted.current || !Html5QrcodeLib) {
-      toast.error('Scanner library not loaded yet. Please try again.')
+    if (!isMounted.current) return
+    
+    if (!isInitialized || !Html5QrcodeLib) {
+      toast.error('Scanner is loading. Please wait a moment.')
       return
     }
 
@@ -72,8 +82,12 @@ export function QRScanner() {
         scannerRef.current = null
       }
 
-      // Wait a bit for DOM
-      await new Promise(resolve => setTimeout(resolve, 100))
+      // Wait for DOM element to be ready
+      const element = document.getElementById(containerId)
+      if (!element) {
+        toast.error('Scanner element not found. Please refresh.')
+        return
+      }
 
       const html5QrCode = new Html5QrcodeLib(containerId)
       scannerRef.current = html5QrCode
