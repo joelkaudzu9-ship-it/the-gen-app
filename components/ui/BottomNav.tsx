@@ -18,11 +18,12 @@ export function BottomNav() {
   const pathname = usePathname()
   
   // HIDE on these pages
-  const hideNav = pathname?.includes('/login') || 
-                  pathname?.includes('/register') || 
-                  pathname?.includes('/dashboard')
+  const authPages = ['/login', '/register']
+  const isAuthPage = authPages.some(page => 
+    pathname === page || pathname?.startsWith('/dashboard')
+  )
 
-  if (hideNav) {
+  if (isAuthPage) {
     return null
   }
 

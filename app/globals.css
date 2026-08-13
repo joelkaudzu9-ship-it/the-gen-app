@@ -623,9 +623,3 @@ textarea.input-gold {
   }
 }
 
-/* Hide bottom nav on login/register pages */
-body.login-page .bottom-nav,
-body.register-page .bottom-nav,
-body.dashboard-page .bottom-nav {
-  display: none !important;
-}
