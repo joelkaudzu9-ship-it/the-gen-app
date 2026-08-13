@@ -1,7 +1,7 @@
 // components/auth/AuthForm.tsx
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { supabase } from '@/lib/supabase'
 import { motion } from 'framer-motion'
 import toast from 'react-hot-toast'
@@ -25,11 +25,21 @@ interface AuthFormProps {
 
 export default function AuthForm({ mode, onSuccess }: AuthFormProps) {
   const [loading, setLoading] = useState(false)
+  const [resetLoading, setResetLoading] = useState(false)
+  const [resetCooldown, setResetCooldown] = useState(0)
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [fullName, setFullName] = useState('')
   const [showPassword, setShowPassword] = useState(false)
   const [imageError, setImageError] = useState(false)
+
+  useEffect(() => {
+    if (resetCooldown <= 0) return
+    const timer = setInterval(() => {
+      setResetCooldown((prev) => (prev <= 1 ? 0 : prev - 1))
+    }, 1000)
+    return () => clearInterval(timer)
+  }, [resetCooldown])
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -81,6 +91,30 @@ export default function AuthForm({ mode, onSuccess }: AuthFormProps) {
     }
   }
 
+  const handleForgotPassword = async () => {
+    if (!email.trim()) {
+      toast.error('Enter your email address first')
+      return
+    }
+    if (resetCooldown > 0) return
+
+    setResetLoading(true)
+    try {
+      const { error } = await supabase.auth.resetPasswordForEmail(email.trim(), {
+        redirectTo: `${window.location.origin}/update-password`,
+      })
+
+      if (error) throw error
+
+      toast.success('Password reset email sent! Check your inbox. 📧')
+      setResetCooldown(60)
+    } catch (error: any) {
+      toast.error(error.message)
+    } finally {
+      setResetLoading(false)
+    }
+  }
+
   return (
     <div className="min-h-screen flex items-center justify-center p-6">
       <motion.div
@@ -92,7 +126,7 @@ export default function AuthForm({ mode, onSuccess }: AuthFormProps) {
         <div className="glass-card-dark">
           {/* LOGO */}
           <div className="text-center mb-4">
-            <div className="w-20 h-20 mx-auto mb-2" style={{ marginBottom: '1rem' }}>
+            <div className="w-20 h-20 mx-auto" style={{ marginBottom: '1rem' }}>
               {!imageError ? (
                 <img
                   src="/logo-gold.png"
@@ -148,9 +182,30 @@ export default function AuthForm({ mode, onSuccess }: AuthFormProps) {
             </div>
 
             <div>
-              <label className="text-white/80 text-sm font-medium mb-2" style={{ display: 'block' }}>
-                Password
-              </label>
+              <div className="flex items-center justify-between mb-2">
+                <label className="text-white/80 text-sm font-medium">Password</label>
+                {mode === 'login' && (
+                  <button
+                    type="button"
+                    onClick={handleForgotPassword}
+                    disabled={resetLoading || resetCooldown > 0}
+                    style={{
+                      background: 'none',
+                      border: 'none',
+                      cursor: resetLoading || resetCooldown > 0 ? 'default' : 'pointer',
+                      color: '#D4AF37',
+                      fontSize: '13px',
+                      opacity: resetLoading || resetCooldown > 0 ? 0.5 : 1,
+                    }}
+                  >
+                    {resetLoading
+                      ? 'Sending...'
+                      : resetCooldown > 0
+                        ? `Resend in ${resetCooldown}s`
+                        : 'Forgot password?'}
+                  </button>
+                )}
+              </div>
               <div className="relative">
                 <input
                   type={showPassword ? 'text' : 'password'}
@@ -165,8 +220,8 @@ export default function AuthForm({ mode, onSuccess }: AuthFormProps) {
                 <button
                   type="button"
                   onClick={() => setShowPassword(!showPassword)}
-                  className="absolute"
                   style={{
+                    position: 'absolute',
                     right: '16px',
                     top: '50%',
                     transform: 'translateY(-50%)',
@@ -215,9 +270,6 @@ export default function AuthForm({ mode, onSuccess }: AuthFormProps) {
 
           {mode === 'login' && (
             <div className="mt-4 text-center">
-              <p className="text-white/20 text-xs">
-                🔐 Admin users will be redirected to the dashboard
-              </p>
             </div>
           )}
         </div>
