@@ -5,12 +5,13 @@ import { useEffect, useState } from 'react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { motion } from 'framer-motion'
-import { Home, Calendar, User, LifeBuoy, BookOpen } from 'lucide-react'
+import { Home, Calendar, User, LifeBuoy, BookOpen, Ticket } from 'lucide-react'
 import { supabase } from '@/lib/supabase'
 
 const navItems = [
   { icon: Home, label: 'Home', href: '/' },
   { icon: Calendar, label: 'Programme', href: '/programme' },
+  { icon: Ticket, label: 'Coupons', href: '/coupons' },
   { icon: User, label: 'Me', href: '/me' },
   { icon: BookOpen, label: 'Resources', href: '/resources' },
   { icon: LifeBuoy, label: 'Help', href: '/help' },
