@@ -5,7 +5,6 @@ import { useState, useEffect } from 'react'
 import { supabase } from '@/lib/supabase'
 import { GlassCard } from '@/components/ui/GlassCard'
 import { GoldButton } from '@/components/ui/GoldButton'
-import { sendPushNotification } from '@/lib/onesignal'
 import toast from 'react-hot-toast'
 import { Send, Bell, Star, Edit2, Trash2, X } from 'lucide-react'
 
@@ -14,7 +13,6 @@ export function AnnouncementPublisher() {
   const [message, setMessage] = useState('')
   const [priority, setPriority] = useState(false)
   const [loading, setLoading] = useState(false)
-  const [sendingPush, setSendingPush] = useState(false)
   const [announcements, setAnnouncements] = useState<any[]>([])
   const [loadingAnnouncements, setLoadingAnnouncements] = useState(true)
   const [editingId, setEditingId] = useState<string | null>(null)
@@ -46,31 +44,21 @@ export function AnnouncementPublisher() {
     }
 
     setLoading(true)
-    setSendingPush(true)
     try {
-      let result
-
       if (editingId) {
-        // UPDATE existing announcement
-        const { data, error } = await supabase
+        const { error } = await supabase
           .from('announcements')
           .update({
             title: title.trim(),
             message: message.trim(),
             priority: priority,
-            updated_at: new Date().toISOString()
           })
           .eq('id', editingId)
-          .select()
-          .single()
 
         if (error) throw error
-        result = data
-
         toast.success('📢 Announcement updated!')
       } else {
-        // INSERT new announcement
-        const { data, error } = await supabase
+        const { error } = await supabase
           .from('announcements')
           .insert({
             title: title.trim(),
@@ -78,24 +66,9 @@ export function AnnouncementPublisher() {
             priority: priority,
             published_at: new Date().toISOString()
           })
-          .select()
-          .single()
 
         if (error) throw error
-        result = data
-
-        // Send push notification only for new announcements
-        const pushResult = await sendPushNotification(
-          title.trim(),
-          message.trim(),
-          { announcementId: data.id, priority }
-        )
-
-        if (pushResult?.success) {
-          toast.success('📢 Announcement published! Push notification sent.')
-        } else {
-          toast.success('📢 Announcement published! (Push notification failed)')
-        }
+        toast.success('📢 Announcement published!')
       }
 
       setTitle('')
@@ -104,11 +77,10 @@ export function AnnouncementPublisher() {
       setEditingId(null)
       await fetchAnnouncements()
     } catch (error) {
-      console.error('Error saving announcement:', error)
+      console.error('Error:', error)
       toast.error('Failed to save announcement')
     } finally {
       setLoading(false)
-      setSendingPush(false)
     }
   }
 
@@ -136,7 +108,7 @@ export function AnnouncementPublisher() {
     setMessage(announcement.message)
     setPriority(announcement.priority)
     setEditingId(announcement.id)
-    toast.success('Editing announcement - make changes and save')
+    toast.success('Editing announcement - make changes and publish')
   }
 
   function cancelEdit() {
@@ -148,16 +120,18 @@ export function AnnouncementPublisher() {
 
   return (
     <div className="space-y-4">
+      {/* Publisher Card */}
       <GlassCard dark>
-        <div className="flex items-center justify-between mb-4">
-          <h3 className="text-white font-semibold flex items-center gap-2">
-            <Send size={20} className="text-[#D4AF37]" />
+        <div className="flex items-center justify-between" style={{ marginBottom: '16px' }}>
+          <h3 className="text-white font-semibold flex items-center gap-2" style={{ fontSize: '16px' }}>
+            <Send size={20} className="text-brand-gold" />
             {editingId ? 'Edit Announcement' : 'Publish Announcement'}
           </h3>
           {editingId && (
             <button
               onClick={cancelEdit}
               className="text-white/40 hover:text-red-400 transition-colors"
+              style={{ background: 'none', border: 'none', cursor: 'pointer' }}
             >
               <X size={20} />
             </button>
@@ -166,26 +140,31 @@ export function AnnouncementPublisher() {
 
         <form onSubmit={publishAnnouncement} className="space-y-4">
           <div>
-            <label className="block text-white/80 text-sm font-medium mb-1">Title</label>
+            <label className="text-white/80 text-sm font-medium mb-2 block">
+              Title
+            </label>
             <input
               type="text"
               value={title}
               onChange={(e) => setTitle(e.target.value)}
-              className="w-full px-4 py-2 rounded-2xl border border-white/10 bg-white/5 text-white focus:border-[#D4AF37] focus:outline-none transition-colors"
+              className="input-gold"
               placeholder="Announcement title"
               required
             />
           </div>
 
           <div>
-            <label className="block text-white/80 text-sm font-medium mb-1">Message</label>
+            <label className="text-white/80 text-sm font-medium mb-2 block">
+              Message
+            </label>
             <textarea
               value={message}
               onChange={(e) => setMessage(e.target.value)}
-              className="w-full px-4 py-2 rounded-2xl border border-white/10 bg-white/5 text-white focus:border-[#D4AF37] focus:outline-none transition-colors"
+              className="input-gold"
               placeholder="Write your announcement..."
               rows={3}
               required
+              style={{ minHeight: '80px', resize: 'vertical' }}
             />
           </div>
 
@@ -195,55 +174,71 @@ export function AnnouncementPublisher() {
                 type="checkbox"
                 checked={priority}
                 onChange={(e) => setPriority(e.target.checked)}
-                className="w-4 h-4 accent-[#D4AF37]"
+                className="w-4 h-4 accent-brand-gold"
+                style={{ accentColor: '#D4AF37' }}
               />
               <span className="text-white/60 text-sm flex items-center gap-1">
-                <Star size={14} className={priority ? 'text-[#D4AF37]' : ''} />
+                <Star size={14} className={priority ? 'text-brand-gold' : ''} />
                 Priority
               </span>
             </label>
-            <span className="text-xs text-white/20">
-              {editingId ? 'Update announcement' : 'Will send push notification'}
-            </span>
           </div>
 
-          <GoldButton type="submit" loading={loading} fullWidth>
-            <Send size={18} />
-            {editingId 
-              ? 'Update Announcement' 
-              : sendingPush ? 'Publishing & Sending...' : 'Publish Announcement'
-            }
-          </GoldButton>
+          <button
+            type="submit"
+            disabled={loading}
+            className="btn-gold w-full"
+          >
+            {loading ? (
+              <span className="flex items-center justify-center gap-2">
+                <svg className="animate-spin" width={18} height={18} viewBox="0 0 24 24">
+                  <circle style={{ opacity: 0.25 }} cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" />
+                  <path style={{ opacity: 0.75 }} fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
+                </svg>
+                Saving...
+              </span>
+            ) : (
+              <>
+                <Send size={18} />
+                {editingId ? 'Update Announcement' : 'Publish Announcement'}
+              </>
+            )}
+          </button>
         </form>
       </GlassCard>
 
+      {/* Announcements List */}
       <GlassCard dark>
         <h4 className="text-white font-semibold mb-3 flex items-center gap-2">
-          <Bell size={16} className="text-[#D4AF37]" />
+          <Bell size={16} className="text-brand-gold" />
           Announcements
+          <span className="text-xs text-white/30 ml-1">({announcements.length})</span>
         </h4>
 
         {loadingAnnouncements ? (
-          <div className="text-center py-4">
-            <div className="animate-spin rounded-full h-6 w-6 border-2 border-[#D4AF37] border-t-transparent mx-auto" />
+          <div className="text-center" style={{ padding: '16px 0' }}>
+            <div className="animate-spin rounded-full" style={{ width: '24px', height: '24px', border: '2px solid #D4AF37', borderTopColor: 'transparent', margin: '0 auto' }} />
           </div>
         ) : announcements.length === 0 ? (
-          <p className="text-white/30 text-sm text-center py-4">No announcements yet</p>
+          <p className="text-white/30 text-sm text-center" style={{ padding: '16px 0' }}>
+            No announcements yet
+          </p>
         ) : (
-          <div className="space-y-3 max-h-80 overflow-y-auto">
+          <div className="space-y-3" style={{ maxHeight: '320px', overflowY: 'auto' }}>
             {announcements.map((announcement) => (
               <div
                 key={announcement.id}
-                className={`p-3 rounded-xl bg-white/5 border ${
-                  announcement.priority ? 'border-[#D4AF37]/30' : 'border-white/5'
-                }`}
+                className="p-3 rounded-xl bg-white/5 border"
+                style={{
+                  borderColor: announcement.priority ? 'rgba(212, 175, 55, 0.3)' : 'rgba(255,255,255,0.05)',
+                }}
               >
                 <div className="flex items-start justify-between">
-                  <div className="flex-1">
+                  <div className="flex-1 min-w-0">
                     <h5 className="text-white font-medium text-sm">
                       {announcement.title}
                       {announcement.priority && (
-                        <span className="ml-2 text-xs bg-[#D4AF37]/20 text-[#D4AF37] px-2 py-0.5 rounded-full">
+                        <span className="ml-2 text-xs bg-brand-gold/20 text-brand-gold px-2 py-0.5 rounded-full">
                           Priority
                         </span>
                       )}
@@ -253,16 +248,18 @@ export function AnnouncementPublisher() {
                       {new Date(announcement.published_at).toLocaleString()}
                     </p>
                   </div>
-                  <div className="flex items-center gap-1 ml-2">
+                  <div className="flex items-center gap-1 ml-2 flex-shrink-0">
                     <button
                       onClick={() => editAnnouncement(announcement)}
-                      className="p-1.5 rounded-lg hover:bg-[#D4AF37]/10 transition-colors"
+                      className="p-1.5 rounded-lg hover:bg-brand-gold/10 transition-colors"
+                      style={{ background: 'none', border: 'none', cursor: 'pointer' }}
                     >
-                      <Edit2 size={14} className="text-white/40 hover:text-[#D4AF37]" />
+                      <Edit2 size={14} className="text-white/40 hover:text-brand-gold" />
                     </button>
                     <button
                       onClick={() => deleteAnnouncement(announcement.id)}
                       className="p-1.5 rounded-lg hover:bg-red-500/10 transition-colors"
+                      style={{ background: 'none', border: 'none', cursor: 'pointer' }}
                     >
                       <Trash2 size={14} className="text-white/30 hover:text-red-400" />
                     </button>
