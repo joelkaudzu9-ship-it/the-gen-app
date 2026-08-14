@@ -2,6 +2,7 @@
 import type { Metadata, Viewport } from 'next'
 import './globals.css'
 import { ClientLayout } from '@/components/ClientLayout'
+import { OneSignalProvider } from '@/components/OneSignalProvider'  // ← ADD THIS
 import { Toaster } from 'react-hot-toast'
 
 export const metadata: Metadata = {
@@ -26,11 +27,13 @@ export default function RootLayout({
   return (
     <html lang="en" suppressHydrationWarning>
       <body suppressHydrationWarning>
-        <ClientLayout>
-          <div className="max-w-md mx-auto min-h-screen">
-            {children}
-          </div>
-        </ClientLayout>
+        <OneSignalProvider>  {/* ← ADD THIS WRAPPER */}
+          <ClientLayout>
+            <div className="max-w-md mx-auto min-h-screen">
+              {children}
+            </div>
+          </ClientLayout>
+        </OneSignalProvider>  {/* ← CLOSE THE WRAPPER */}
         <Toaster 
           position="top-center"
           toastOptions={{
