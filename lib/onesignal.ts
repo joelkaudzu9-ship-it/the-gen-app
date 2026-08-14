@@ -8,6 +8,9 @@ export const ONESIGNAL_API_KEY = process.env.ONESIGNAL_API_KEY || ''
 export function initOneSignal() {
   if (typeof window === 'undefined') return
 
+  // Temporarily disabled — v16 SDK incompatibility being fixed
+  return
+
   // @ts-ignore
   if (window.OneSignal) return
 
