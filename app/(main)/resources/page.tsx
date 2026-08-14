@@ -7,9 +7,10 @@ import { isAdmin } from '@/lib/admin'
 import { sendPushNotification } from '@/lib/onesignal'
 import { GlassCard } from '@/components/ui/GlassCard'
 import { AnimatedSection } from '@/components/ui/AnimatedSection'
-import { FileText, Download, Book, Music, Video, Link2, Trash2, Edit2, ExternalLink } from 'lucide-react'
+import { FileText, Download, Book, Music, Video, Link2, Trash2, Edit2, ExternalLink, ArrowLeft } from 'lucide-react'
 import { GoldButton } from '@/components/ui/GoldButton'
 import toast from 'react-hot-toast'
+import Link from 'next/link'
 
 export const dynamic = 'force-dynamic'
 export const fetchCache = 'force-no-store'
@@ -296,6 +297,18 @@ export default function ResourcesPage() {
   return (
     <div className="min-h-screen p-4 pb-24" style={{ background: PAGE_BG }}>
       <div className="max-w-md mx-auto">
+        {/* Back to Dashboard - Admin Only */}
+        {admin && (
+          <Link
+            href="/dashboard"
+            className="inline-flex items-center gap-1 text-sm mb-3"
+            style={{ color: 'rgba(212, 175, 55, 0.7)' }}
+          >
+            <ArrowLeft size={14} />
+            Back to Dashboard
+          </Link>
+        )}
+
         <div className="flex items-center justify-between mb-4">
           <h1 className="text-2xl font-bold text-white">Resources</h1>
           {admin && (

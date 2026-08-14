@@ -5,7 +5,8 @@ import { useEffect, useState } from 'react'
 import { supabase } from '@/lib/supabase'
 import { isAdmin } from '@/lib/admin'
 import { useRouter } from 'next/navigation'
-import { Shield, LogOut } from 'lucide-react'
+import Link from 'next/link'
+import { Shield, LogOut, FileText } from 'lucide-react'
 import toast from 'react-hot-toast'
 
 export default function OrganiserLayout({
@@ -71,7 +72,7 @@ export default function OrganiserLayout({
   return (
     <div className="min-h-screen bg-brand-black">
       <div className="mx-auto p-4" style={{ maxWidth: '1280px' }}>
-        {/* Header with Styled Sign Out Button */}
+        {/* Header with Resources Link and Sign Out Button */}
         <div className="flex items-center justify-between mb-4">
           <div className="flex items-center gap-3">
             <div className="rounded-xl bg-brand-gold/10" style={{ padding: '8px' }}>
@@ -79,21 +80,36 @@ export default function OrganiserLayout({
             </div>
             <h1 className="text-xl font-bold text-white">Organiser Dashboard</h1>
           </div>
-          <button
-            onClick={handleSignOut}
-            className="flex items-center gap-2 rounded-xl text-sm font-medium"
-            style={{
-              padding: '8px 16px',
-              background: 'rgba(239, 68, 68, 0.1)',
-              border: '1px solid rgba(239, 68, 68, 0.2)',
-              color: '#F87171',
-              transition: 'all 0.3s ease',
-              cursor: 'pointer',
-            }}
-          >
-            <LogOut size={16} />
-            Sign Out
-          </button>
+          <div className="flex items-center gap-2">
+            <Link
+              href="/resources"
+              className="flex items-center gap-2 rounded-xl text-sm font-medium"
+              style={{
+                padding: '8px 16px',
+                background: 'rgba(212, 175, 55, 0.1)',
+                border: '1px solid rgba(212, 175, 55, 0.2)',
+                color: '#D4AF37',
+              }}
+            >
+              <FileText size={16} />
+              Resources
+            </Link>
+            <button
+              onClick={handleSignOut}
+              className="flex items-center gap-2 rounded-xl text-sm font-medium"
+              style={{
+                padding: '8px 16px',
+                background: 'rgba(239, 68, 68, 0.1)',
+                border: '1px solid rgba(239, 68, 68, 0.2)',
+                color: '#F87171',
+                transition: 'all 0.3s ease',
+                cursor: 'pointer',
+              }}
+            >
+              <LogOut size={16} />
+              Sign Out
+            </button>
+          </div>
         </div>
         {children}
       </div>
