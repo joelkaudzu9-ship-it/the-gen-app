@@ -2,13 +2,42 @@
 'use client'
 
 import { useEffect } from 'react'
-import { initOneSignal } from '@/lib/onesignal'
 
 export function OneSignalProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
-    // Only run in production, not during development
-    if (process.env.NODE_ENV === 'development') return
-    initOneSignal()
+    if (typeof window === 'undefined') return
+
+    const appId = process.env.NEXT_PUBLIC_ONESIGNAL_APP_ID
+    if (!appId) return
+
+    // Check if OneSignal is already loaded
+    if (document.querySelector('script[src*="OneSignalSDK"]')) return
+
+    const script = document.createElement('script')
+    script.src = 'https://cdn.onesignal.com/sdks/web/v16/OneSignalSDK.page.js'
+    script.async = true
+    document.head.appendChild(script)
+
+    script.onload = () => {
+      // @ts-ignore
+      window.OneSignal = window.OneSignal || []
+      // @ts-ignore
+      window.OneSignal.push(() => {
+        // @ts-ignore
+        window.OneSignal.init({
+          appId: appId,
+          allowLocalhostAsSecureOrigin: true,
+          autoRegister: true,
+        })
+      })
+    }
+
+    return () => {
+      // Cleanup
+      if (script.parentNode) {
+        script.parentNode.removeChild(script)
+      }
+    }
   }, [])
 
   return <>{children}</>

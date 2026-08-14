@@ -2,6 +2,7 @@
 'use client'
 
 import { useEffect, useState } from 'react'
+import { useRouter } from 'next/navigation'
 import { supabase, getParticipant } from '@/lib/supabase'
 import { getLiveStatus } from '@/lib/live-engine'
 import { Announcement, LiveStatus, Participant } from '@/lib/types'
@@ -19,6 +20,7 @@ export const fetchCache = 'force-no-store'
 const PAGE_BG = 'linear-gradient(to bottom, #0A0A0A, #0A0A0A, #1A1A1A)'
 
 export default function HomePage() {
+  const router = useRouter()
   const [participant, setParticipant] = useState<Participant | null>(null)
   const [liveStatus, setLiveStatus] = useState<LiveStatus>({ now: null, next: null, later: [] })
   const [announcements, setAnnouncements] = useState<Announcement[]>([])
@@ -26,20 +28,24 @@ export default function HomePage() {
   const [heroImageError, setHeroImageError] = useState(false)
 
   useEffect(() => {
-    fetchData()
+    checkAuthAndFetch()
     const interval = setInterval(() => {
       getLiveStatus().then(setLiveStatus)
     }, 60000)
     return () => clearInterval(interval)
   }, [])
 
-  const fetchData = async () => {
+  const checkAuthAndFetch = async () => {
     try {
       const { data: { user } } = await supabase.auth.getUser()
-      if (user) {
-        const p = await getParticipant(user.id)
-        if (p) setParticipant(p)
+
+      if (!user) {
+        router.push('/login')
+        return
       }
+
+      const p = await getParticipant(user.id)
+      if (p) setParticipant(p)
 
       const [status, announcementsData] = await Promise.all([
         getLiveStatus(),
@@ -63,7 +69,7 @@ export default function HomePage() {
   const handleSignOut = async () => {
     await supabase.auth.signOut()
     toast.success('Signed out')
-    window.location.reload()
+    router.push('/login')
   }
 
   if (loading) return <LoadingSkeleton />

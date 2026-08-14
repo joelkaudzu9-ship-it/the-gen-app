@@ -4,15 +4,10 @@
 export const ONESIGNAL_APP_ID = process.env.NEXT_PUBLIC_ONESIGNAL_APP_ID || ''
 export const ONESIGNAL_API_KEY = process.env.ONESIGNAL_API_KEY || ''
 
-// TEMPORARILY DISABLED - Fixing v16 SDK compatibility
+// Initialize OneSignal on the client side
 export function initOneSignal() {
   if (typeof window === 'undefined') return
-  // 🔴 TEMPORARILY DISABLED — v16 SDK incompatibility being fixed
-  console.log('OneSignal initialization temporarily disabled')
-  return
 
-  // Original code below (commented out for now)
-  /*
   // @ts-ignore
   if (window.OneSignal) return
 
@@ -37,23 +32,64 @@ export function initOneSignal() {
       })
     })
   }
-  */
 }
 
-// Temporarily disabled
+// Subscribe user to notifications
 export function subscribeToNotifications(email: string, userId: string) {
-  console.log('Notification subscription disabled')
-  return
+  if (typeof window === 'undefined') return
+
+  // @ts-ignore
+  if (!window.OneSignal) return
+
+  // @ts-ignore
+  window.OneSignal.push(() => {
+    // @ts-ignore
+    window.OneSignal.sendTag('user_id', userId)
+    // @ts-ignore
+    window.OneSignal.sendTag('user_email', email)
+    // @ts-ignore
+    window.OneSignal.getUserId((userId: string) => {
+      console.log('OneSignal User ID:', userId)
+    })
+  })
 }
 
-// Temporarily disabled
+// Unsubscribe from notifications
 export function unsubscribeFromNotifications() {
-  console.log('Notification unsubscription disabled')
-  return
+  if (typeof window === 'undefined') return
+
+  // @ts-ignore
+  if (!window.OneSignal) return
+
+  // @ts-ignore
+  window.OneSignal.push(() => {
+    // @ts-ignore
+    window.OneSignal.setSubscription(false)
+  })
 }
 
-// Temporarily disabled
+// Send notification
 export async function sendPushNotification(title: string, message: string, data?: any) {
-  console.log('Push notification disabled')
-  return { success: false, message: 'Disabled' }
+  try {
+    const response = await fetch('/api/send-notification', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        title,
+        message,
+        data,
+      }),
+    })
+
+    if (!response.ok) {
+      throw new Error('Failed to send notification')
+    }
+
+    return await response.json()
+  } catch (error) {
+    console.error('Error sending push notification:', error)
+    return null
+  }
 }
