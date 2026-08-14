@@ -5,7 +5,7 @@ import { useState, useEffect } from 'react'
 import { supabase } from '@/lib/supabase'
 import { GlassCard } from '@/components/ui/GlassCard'
 import toast from 'react-hot-toast'
-import { CheckCircle, Coffee, Utensils, Clock, Ticket } from 'lucide-react'
+import { CheckCircle2, Coffee, Utensils, Moon, Clock, Ticket, Circle } from 'lucide-react'
 
 interface Coupon {
   id: string
@@ -15,6 +15,14 @@ interface Coupon {
   used: boolean
   used_at: string | null
   created_at: string
+}
+
+type MealKey = 'breakfast' | 'lunch' | 'dinner'
+
+const MEAL_META: Record<MealKey, { label: string; icon: any; color: string }> = {
+  breakfast: { label: 'Breakfast', icon: Coffee, color: 'text-yellow-400' },
+  lunch: { label: 'Lunch', icon: Utensils, color: 'text-orange-400' },
+  dinner: { label: 'Dinner', icon: Moon, color: 'text-purple-400' },
 }
 
 export function FoodCoupon() {
@@ -55,22 +63,9 @@ export function FoodCoupon() {
     }
   }
 
-  const mealIcons: Record<string, any> = {
-    breakfast: Coffee,
-    lunch: Utensils,
-    dinner: Utensils,
-  }
-
-  const mealColors: Record<string, string> = {
-    breakfast: 'text-yellow-400',
-    lunch: 'text-orange-400',
-    dinner: 'text-purple-400',
-  }
-
   const dayNames = ['Day 1', 'Day 2', 'Day 3', 'Day 4', 'Day 5']
 
-  // Get current meal based on time of day
-  function getCurrentMeal() {
+  function getCurrentMeal(): MealKey | null {
     const hour = new Date().getHours()
     if (hour >= 6 && hour < 11) return 'breakfast'
     if (hour >= 11 && hour < 16) return 'lunch'
@@ -78,14 +73,19 @@ export function FoodCoupon() {
     return null
   }
 
-  // Group coupons by day
   const groupedCoupons = coupons.reduce<Record<number, Coupon[]>>((acc, coupon) => {
     if (!acc[coupon.day]) acc[coupon.day] = []
     acc[coupon.day].push(coupon)
     return acc
   }, {})
 
-  const currentDay = Math.min(Math.max(Math.floor((new Date().getTime() - new Date('2026-08-13').getTime()) / (1000 * 60 * 60 * 24)) + 1, 1), 5)
+  const currentDay = Math.min(
+    Math.max(
+      Math.floor((new Date().getTime() - new Date('2026-08-13').getTime()) / (1000 * 60 * 60 * 24)) + 1,
+      1
+    ),
+    5
+  )
   const currentMeal = getCurrentMeal()
 
   if (loading) {
@@ -98,104 +98,120 @@ export function FoodCoupon() {
 
   return (
     <div className="space-y-4">
-      {/* Check-in Status */}
+      {/* Check-in status */}
       <GlassCard dark>
         <div className="flex items-center justify-between">
           <div>
-            <p className="text-white/60 text-sm">Check-in Status</p>
+            <p className="text-white/60 text-sm">Check-in status</p>
             <p className={`font-semibold ${participant?.checked_in ? 'text-green-500' : 'text-yellow-500'}`}>
-              {participant?.checked_in ? '✅ Checked In' : '⏳ Not Checked In'}
+              {participant?.checked_in ? 'Checked in' : 'Not checked in'}
             </p>
           </div>
-          <span className="text-xs text-white/30">
-            {participant?.checked_in ? '🎟️ Coupons available' : 'Check in to get coupons'}
+          <span className="text-xs text-white/30 text-right">
+            {participant?.checked_in ? 'Coupons available' : 'Check in to get coupons'}
           </span>
         </div>
       </GlassCard>
 
-      {/* Current Meal - Highlighted */}
+      {/* Current meal hero */}
       {participant?.checked_in && currentMeal && (
         <GlassCard dark className="border-l-4 border-brand-gold">
           <div className="flex items-center gap-3">
-            <div className="p-3 rounded-full bg-brand-gold/20">
-              {currentMeal === 'breakfast' ? <Coffee size={24} className="text-brand-gold" /> : <Utensils size={24} className="text-brand-gold" />}
+            <div className="p-3 rounded-full bg-brand-gold/20 shrink-0">
+              {currentMeal === 'breakfast' ? (
+                <Coffee size={24} className="text-brand-gold" />
+              ) : currentMeal === 'dinner' ? (
+                <Moon size={24} className="text-brand-gold" />
+              ) : (
+                <Utensils size={24} className="text-brand-gold" />
+              )}
             </div>
-            <div>
+            <div className="min-w-0">
               <p className="text-white/60 text-sm flex items-center gap-1">
                 <Clock size={14} className="text-brand-gold" />
-                Now Available
+                Now serving
               </p>
-              <p className="text-white font-semibold text-lg">
-                {currentMeal.charAt(0).toUpperCase() + currentMeal.slice(1)}
+              <p className="text-white font-semibold text-lg leading-tight">
+                {MEAL_META[currentMeal].label}
               </p>
-              <p className="text-brand-gold/60 text-sm">Tap to use your coupon</p>
+              <p className="text-brand-gold/60 text-sm">Show this at the counter</p>
             </div>
-            <div className="ml-auto">
-              <Ticket size={24} className="text-brand-gold" />
-            </div>
+            <Ticket size={22} className="text-brand-gold/50 ml-auto shrink-0" />
           </div>
         </GlassCard>
       )}
 
-      {/* All Coupons */}
+      {/* All coupons */}
       <GlassCard dark>
-        <h3 className="text-white font-semibold mb-4">All Food Coupons</h3>
+        <h3 className="text-white font-semibold mb-3">Your food coupons</h3>
         {Object.keys(groupedCoupons).length === 0 ? (
-          <p className="text-white/40 text-sm text-center py-4">
-            {participant?.checked_in 
-              ? 'No food coupons available. Contact an organiser.'
-              : 'Please check in to access your food coupons.'}
-          </p>
+          <div className="text-center py-6">
+            <Ticket size={28} className="text-white/15 mx-auto mb-2" />
+            <p className="text-white/40 text-sm">
+              {participant?.checked_in
+                ? "No coupons yet — they'll show up here once the organisers generate them."
+                : 'Check in at the desk to unlock your meal coupons.'}
+            </p>
+          </div>
         ) : (
-          <div className="space-y-4">
+          <div className="space-y-3">
             {Object.entries(groupedCoupons).map(([day, dayCoupons]) => {
               const dayNum = parseInt(day)
-              const allUsed = dayCoupons.every((c: Coupon) => c.used)
-              const hasAvailable = dayCoupons.some((c: Coupon) => !c.used)
+              const usedCount = dayCoupons.filter((c: Coupon) => c.used).length
+              const allUsed = usedCount === dayCoupons.length
               const isToday = dayNum === currentDay
 
               return (
                 <div
                   key={day}
-                  className={`p-4 rounded-xl border ${
+                  className={`rounded-xl border overflow-hidden ${
                     isToday ? 'bg-brand-gold/5 border-brand-gold/30' : 'bg-white/5 border-white/5'
                   }`}
                 >
-                  <div className="flex items-center justify-between mb-2">
-                    <h4 className="text-white font-medium">
+                  <div className="flex items-center justify-between px-3.5 py-2.5 border-b border-white/5">
+                    <h4 className="text-white font-medium text-sm flex items-center gap-2">
                       {dayNames[dayNum - 1]}
-                      {isToday && <span className="ml-2 text-xs text-brand-gold">● Today</span>}
+                      {isToday && (
+                        <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-brand-gold/20 text-brand-gold">
+                          Today
+                        </span>
+                      )}
                     </h4>
-                    <span className={`text-xs ${allUsed ? 'text-green-400' : hasAvailable ? 'text-brand-gold' : 'text-white/30'}`}>
-                      {allUsed ? '✅ All Used' : hasAvailable ? `${dayCoupons.filter((c: Coupon) => !c.used).length} available` : 'No coupons'}
+                    <span className={`text-xs ${allUsed ? 'text-white/30' : 'text-white/50'}`}>
+                      {usedCount}/{dayCoupons.length} used
                     </span>
                   </div>
-                  <div className="grid grid-cols-3 gap-2">
+
+                  <div className="divide-y divide-white/5">
                     {dayCoupons.map((coupon: Coupon) => {
-                      const Icon = mealIcons[coupon.meal_type] || Utensils
-                      const color = mealColors[coupon.meal_type] || 'text-white/40'
+                      const meta = MEAL_META[coupon.meal_type as MealKey] ?? MEAL_META.lunch
+                      const Icon = meta.icon
                       const isCurrentMeal = isToday && coupon.meal_type === currentMeal && !coupon.used
-                      
+
                       return (
                         <div
                           key={coupon.id}
-                          className={`p-2 rounded-lg text-center ${
-                            coupon.used
-                              ? 'bg-white/5 opacity-50'
-                              : isCurrentMeal
-                              ? 'bg-brand-gold/20 border border-brand-gold'
-                              : 'bg-white/10'
+                          className={`flex items-center gap-3 px-3.5 py-2.5 ${
+                            isCurrentMeal ? 'bg-brand-gold/10' : ''
                           }`}
                         >
-                          <Icon size={18} className={`mx-auto ${coupon.used ? 'text-white/30' : color}`} />
-                          <p className={`text-xs mt-1 ${coupon.used ? 'text-white/30' : 'text-white/60'}`}>
-                            {coupon.meal_type.charAt(0).toUpperCase() + coupon.meal_type.slice(1)}
-                          </p>
-                          {coupon.used && (
-                            <p className="text-[10px] text-green-400">✓ Used</p>
-                          )}
-                          {isCurrentMeal && (
-                            <p className="text-[10px] text-brand-gold animate-pulse">Available Now</p>
+                          <Icon size={16} className={coupon.used ? 'text-white/25' : meta.color} />
+                          <span className={`text-sm flex-1 ${coupon.used ? 'text-white/30' : 'text-white/80'}`}>
+                            {meta.label}
+                          </span>
+                          {coupon.used ? (
+                            <span className="flex items-center gap-1 text-xs text-green-400/80">
+                              <CheckCircle2 size={13} /> Used
+                            </span>
+                          ) : isCurrentMeal ? (
+                            <span className="flex items-center gap-1 text-xs text-brand-gold font-medium">
+                              <span className="w-1.5 h-1.5 rounded-full bg-brand-gold animate-pulse" />
+                              Available now
+                            </span>
+                          ) : (
+                            <span className="flex items-center gap-1 text-xs text-white/25">
+                              <Circle size={11} /> Not yet
+                            </span>
                           )}
                         </div>
                       )

@@ -6,7 +6,7 @@ import { supabase } from '@/lib/supabase'
 import { GlassCard } from '@/components/ui/GlassCard'
 import { GoldButton } from '@/components/ui/GoldButton'
 import toast from 'react-hot-toast'
-import { Coffee, Utensils, Settings, RefreshCw, Users, CheckCircle, AlertCircle } from 'lucide-react'
+import { Coffee, Utensils, Moon, Settings, Save, Users, Ticket } from 'lucide-react'
 
 interface CouponSetting {
   id?: string
@@ -25,16 +25,26 @@ interface CouponStats {
   unused: number
 }
 
+type MealKey = 'breakfast' | 'lunch' | 'dinner'
+
+const MEAL_META: Record<MealKey, { label: string; icon: any }> = {
+  breakfast: { label: 'Breakfast', icon: Coffee },
+  lunch: { label: 'Lunch', icon: Utensils },
+  dinner: { label: 'Dinner', icon: Moon },
+}
+
 export function CouponManager() {
   const [settings, setSettings] = useState<CouponSetting[]>([])
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
   const [generating, setGenerating] = useState<number | null>(null)
   const [stats, setStats] = useState<Record<number, CouponStats>>({})
+  const [checkedInCount, setCheckedInCount] = useState(0)
 
   useEffect(() => {
     fetchSettings()
     fetchAllStats()
+    fetchCheckedInCount()
   }, [])
 
   async function fetchSettings() {
@@ -45,14 +55,13 @@ export function CouponManager() {
         .order('day', { ascending: true })
 
       if (error) throw error
-      
+
       if (data && data.length > 0) {
         setSettings(data)
       } else {
-        // Create default settings
         const defaultSettings = [1, 2, 3, 4, 5].map(day => ({
           day,
-          total_meals: 1,
+          total_meals: 3,
           breakfast_available: true,
           lunch_available: true,
           dinner_available: true,
@@ -93,6 +102,34 @@ export function CouponManager() {
     }
   }
 
+  async function fetchCheckedInCount() {
+    try {
+      const { count, error } = await supabase
+        .from('participants')
+        .select('*', { count: 'exact', head: true })
+        .eq('checked_in', true)
+
+      if (error) throw error
+      setCheckedInCount(count || 0)
+    } catch (error) {
+      console.error('Error fetching checked-in count:', error)
+    }
+  }
+
+  function toggleMeal(day: number, meal: MealKey) {
+    const key = `${meal}_available` as const
+    const newSettings = settings.map(s => (s.day === day ? { ...s, [key]: !s[key] } : s))
+    // total_meals always reflects how many meal types are actually enabled,
+    // so it can never drift from what Generate will actually produce
+    setSettings(
+      newSettings.map(s => ({
+        ...s,
+        total_meals:
+          Number(s.breakfast_available) + Number(s.lunch_available) + Number(s.dinner_available),
+      }))
+    )
+  }
+
   async function saveSettings() {
     setSaving(true)
     try {
@@ -102,7 +139,6 @@ export function CouponManager() {
         return
       }
 
-      // Check if settings exist in database
       const { data: existingSettings, error: fetchError } = await supabase
         .from('coupon_settings')
         .select('id, day')
@@ -113,7 +149,6 @@ export function CouponManager() {
         (existingSettings || []).map(s => [s.day, s.id])
       )
 
-      // Perform upsert operations
       for (const setting of settings) {
         const settingData = {
           day: setting.day,
@@ -126,16 +161,13 @@ export function CouponManager() {
         }
 
         let error
-
         if (existingDayMap.has(setting.day)) {
-          // Update existing
           const { error: updateError } = await supabase
             .from('coupon_settings')
             .update(settingData)
             .eq('day', setting.day)
           error = updateError
         } else {
-          // Insert new
           const { error: insertError } = await supabase
             .from('coupon_settings')
             .insert(settingData)
@@ -148,8 +180,8 @@ export function CouponManager() {
         }
       }
 
-      toast.success('✅ Coupon settings saved!')
-      await fetchSettings() // Refresh to get updated IDs
+      toast.success('Settings saved')
+      await fetchSettings()
     } catch (error: any) {
       console.error('Error saving settings:', error)
       toast.error(error.message || 'Failed to save coupon settings')
@@ -161,7 +193,6 @@ export function CouponManager() {
   async function generateCoupons(day: number) {
     setGenerating(day)
     try {
-      // Get all checked-in participants
       const { data: participants, error: participantsError } = await supabase
         .from('participants')
         .select('id')
@@ -170,12 +201,11 @@ export function CouponManager() {
       if (participantsError) throw participantsError
 
       if (!participants || participants.length === 0) {
-        toast.error('No participants checked in')
+        toast.error('No participants checked in yet')
         setGenerating(null)
         return
       }
 
-      // Get settings for this day
       const daySetting = settings.find(s => s.day === day)
       if (!daySetting) {
         toast.error('No settings found for this day')
@@ -183,19 +213,17 @@ export function CouponManager() {
         return
       }
 
-      // Determine meal types based on settings
-      const mealTypes = []
+      const mealTypes: MealKey[] = []
       if (daySetting.breakfast_available) mealTypes.push('breakfast')
       if (daySetting.lunch_available) mealTypes.push('lunch')
       if (daySetting.dinner_available) mealTypes.push('dinner')
 
       if (mealTypes.length === 0) {
-        toast.error('No meals enabled for this day')
+        toast.error('Turn on at least one meal before generating')
         setGenerating(null)
         return
       }
 
-      // Get current user
       const { data: { user } } = await supabase.auth.getUser()
       if (!user) {
         toast.error('Not authenticated')
@@ -203,7 +231,6 @@ export function CouponManager() {
         return
       }
 
-      // Delete existing coupons for this day
       const { error: deleteError } = await supabase
         .from('food_coupons')
         .delete()
@@ -211,10 +238,8 @@ export function CouponManager() {
 
       if (deleteError) {
         console.error('Delete error:', deleteError)
-        // Continue anyway - we'll try to insert
       }
 
-      // Build coupons array - ONE coupon per meal type per participant
       const coupons = []
       for (const participant of participants) {
         for (const mealType of mealTypes) {
@@ -229,7 +254,6 @@ export function CouponManager() {
         }
       }
 
-      // Insert in chunks to avoid payload size issues
       const chunkSize = 500
       let insertedCount = 0
       for (let i = 0; i < coupons.length; i += chunkSize) {
@@ -245,8 +269,8 @@ export function CouponManager() {
         insertedCount += chunk.length
       }
 
-      toast.success(`✅ Generated ${insertedCount} coupons for Day ${day}`)
-      await fetchAllStats() // Refresh stats
+      toast.success(`Generated ${insertedCount} coupons for Day ${day}`)
+      await fetchAllStats()
     } catch (error: any) {
       console.error('Error generating coupons:', error)
       toast.error(error.message || 'Failed to generate coupons')
@@ -267,137 +291,120 @@ export function CouponManager() {
 
   return (
     <div className="space-y-4">
+      {/* Header */}
       <GlassCard dark>
-        <div className="flex items-center justify-between mb-4">
-          <h3 className="text-white font-semibold flex items-center gap-2">
-            <Settings size={20} className="text-brand-gold" />
-            Coupon Settings
-          </h3>
-          <GoldButton onClick={saveSettings} loading={saving} className="text-sm px-4 py-2">
-            <RefreshCw size={14} />
-            Save Settings
+        <div className="flex items-center justify-between gap-3">
+          <div className="flex items-center gap-2">
+            <div className="p-2 rounded-xl bg-brand-gold/10">
+              <Settings size={18} className="text-brand-gold" />
+            </div>
+            <div>
+              <h3 className="text-white font-semibold leading-tight">Coupon Settings</h3>
+              <p className="text-white/40 text-xs mt-0.5 flex items-center gap-1">
+                <Users size={11} /> {checkedInCount} checked in right now
+              </p>
+            </div>
+          </div>
+          <GoldButton onClick={saveSettings} loading={saving} className="text-sm px-4 py-2 shrink-0">
+            <Save size={14} />
+            Save
           </GoldButton>
         </div>
+      </GlassCard>
 
-        <div className="space-y-4">
-          {settings.map((setting) => {
-            const dayStats = stats[setting.day]
-            return (
-              <div
-                key={setting.day}
-                className="p-4 rounded-xl bg-white/5 border border-white/5 hover:border-brand-gold/20 transition-colors"
-              >
-                <div className="flex items-center justify-between mb-2">
-                  <h4 className="text-white font-medium">{dayNames[setting.day - 1]}</h4>
-                  <div className="flex items-center gap-3">
-                    <label className="flex items-center gap-1 text-white/60 text-sm">
-                      <input
-                        type="number"
-                        min="1"
-                        max="5"
-                        value={setting.total_meals}
-                        onChange={(e) => {
-                          const newSettings = settings.map(s =>
-                            s.day === setting.day
-                              ? { ...s, total_meals: parseInt(e.target.value) || 1 }
-                              : s
-                          )
-                          setSettings(newSettings)
-                        }}
-                        className="w-12 px-2 py-1 rounded-lg bg-white/5 text-white border border-white/10 text-center focus:border-brand-gold focus:outline-none"
+      {/* Per-day cards */}
+      <div className="space-y-3">
+        {settings.map((setting) => {
+          const dayStats = stats[setting.day]
+          const total = dayStats?.total ?? 0
+          const used = dayStats?.used ?? 0
+          const pct = total > 0 ? Math.round((used / total) * 100) : 0
+          const mealsOn = (['breakfast', 'lunch', 'dinner'] as MealKey[]).filter(
+            m => setting[`${m}_available` as const]
+          )
+          const isGenerating = generating === setting.day
+          const projectedCoupons = checkedInCount * mealsOn.length
+
+          return (
+            <div
+              key={setting.day}
+              className="rounded-2xl bg-white/5 border border-white/10 overflow-hidden"
+            >
+              {/* Day header: name + progress */}
+              <div className="flex items-center justify-between gap-3 px-4 py-3 border-b border-white/5">
+                <h4 className="text-white font-semibold">{dayNames[setting.day - 1]}</h4>
+                {total > 0 ? (
+                  <div className="flex items-center gap-2 min-w-0">
+                    <span className="text-white/50 text-xs whitespace-nowrap">
+                      {used}/{total} used
+                    </span>
+                    <div className="w-16 h-1.5 rounded-full bg-white/10 overflow-hidden">
+                      <div
+                        className="h-full rounded-full bg-brand-gold transition-all"
+                        style={{ width: `${pct}%` }}
                       />
-                      Meals/day
-                    </label>
-                    <button
-                      onClick={() => generateCoupons(setting.day)}
-                      disabled={generating === setting.day}
-                      className="text-xs px-3 py-1 rounded-lg bg-brand-gold/20 text-brand-gold hover:bg-brand-gold/30 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                    >
-                      {generating === setting.day ? (
-                        <span className="flex items-center gap-1">
-                          <span className="animate-spin rounded-full h-3 w-3 border-2 border-brand-gold border-t-transparent" />
-                          Generating...
-                        </span>
-                      ) : (
-                        'Generate Coupons'
-                      )}
-                    </button>
+                    </div>
                   </div>
-                </div>
-
-                <div className="flex items-center gap-4 mt-2">
-                  <label className="flex items-center gap-1 text-white/60 text-sm cursor-pointer hover:text-white/80 transition-colors">
-                    <input
-                      type="checkbox"
-                      checked={setting.breakfast_available}
-                      onChange={(e) => {
-                        const newSettings = settings.map(s =>
-                          s.day === setting.day
-                            ? { ...s, breakfast_available: e.target.checked }
-                            : s
-                        )
-                        setSettings(newSettings)
-                      }}
-                      className="accent-brand-gold"
-                    />
-                    <Coffee size={14} /> Breakfast
-                  </label>
-                  <label className="flex items-center gap-1 text-white/60 text-sm cursor-pointer hover:text-white/80 transition-colors">
-                    <input
-                      type="checkbox"
-                      checked={setting.lunch_available}
-                      onChange={(e) => {
-                        const newSettings = settings.map(s =>
-                          s.day === setting.day
-                            ? { ...s, lunch_available: e.target.checked }
-                            : s
-                        )
-                        setSettings(newSettings)
-                      }}
-                      className="accent-brand-gold"
-                    />
-                    <Utensils size={14} /> Lunch
-                  </label>
-                  <label className="flex items-center gap-1 text-white/60 text-sm cursor-pointer hover:text-white/80 transition-colors">
-                    <input
-                      type="checkbox"
-                      checked={setting.dinner_available}
-                      onChange={(e) => {
-                        const newSettings = settings.map(s =>
-                          s.day === setting.day
-                            ? { ...s, dinner_available: e.target.checked }
-                            : s
-                        )
-                        setSettings(newSettings)
-                      }}
-                      className="accent-brand-gold"
-                    />
-                    <Utensils size={14} /> Dinner
-                  </label>
-                </div>
-
-                {/* Coupon Stats */}
-                {dayStats && dayStats.total > 0 && (
-                  <div className="mt-3 pt-3 border-t border-white/5 flex items-center gap-4 text-xs">
-                    <span className="text-white/40 flex items-center gap-1">
-                      <Users size={12} />
-                      Total: {dayStats.total}
-                    </span>
-                    <span className="text-green-400 flex items-center gap-1">
-                      <CheckCircle size={12} />
-                      Used: {dayStats.used}
-                    </span>
-                    <span className="text-white/30 flex items-center gap-1">
-                      <AlertCircle size={12} />
-                      Unused: {dayStats.unused}
-                    </span>
-                  </div>
+                ) : (
+                  <span className="text-white/30 text-xs">Not generated yet</span>
                 )}
               </div>
-            )
-          })}
-        </div>
-      </GlassCard>
+
+              {/* Meal toggle chips */}
+              <div className="px-4 pt-3 flex gap-2">
+                {(['breakfast', 'lunch', 'dinner'] as MealKey[]).map((meal) => {
+                  const { label, icon: Icon } = MEAL_META[meal]
+                  const active = setting[`${meal}_available` as const]
+                  return (
+                    <button
+                      key={meal}
+                      type="button"
+                      onClick={() => toggleMeal(setting.day, meal)}
+                      aria-pressed={active}
+                      className={`flex-1 flex flex-col items-center gap-1 py-2.5 rounded-xl border text-xs font-medium transition-colors ${
+                        active
+                          ? 'bg-brand-gold/15 border-brand-gold/60 text-brand-gold'
+                          : 'bg-white/5 border-white/10 text-white/35 hover:text-white/60'
+                      }`}
+                    >
+                      <Icon size={16} />
+                      {label}
+                    </button>
+                  )
+                })}
+              </div>
+
+              {/* Generate action */}
+              <div className="p-4 pt-3">
+                <button
+                  onClick={() => generateCoupons(setting.day)}
+                  disabled={isGenerating || mealsOn.length === 0}
+                  className="w-full flex items-center justify-center gap-2 py-2.5 rounded-xl bg-brand-gold/15 text-brand-gold text-sm font-medium hover:bg-brand-gold/25 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+                >
+                  {isGenerating ? (
+                    <>
+                      <span className="animate-spin rounded-full h-3.5 w-3.5 border-2 border-brand-gold border-t-transparent" />
+                      Generating…
+                    </>
+                  ) : (
+                    <>
+                      <Ticket size={14} />
+                      {mealsOn.length === 0
+                        ? 'Turn on a meal to generate'
+                        : `Generate for ${dayNames[setting.day - 1]} · ~${projectedCoupons} coupons`}
+                    </>
+                  )}
+                </button>
+                {total > 0 && (
+                  <p className="text-white/30 text-[11px] text-center mt-2">
+                    Regenerating replaces all {total} existing coupons for this day
+                  </p>
+                )}
+              </div>
+            </div>
+          )
+        })}
+      </div>
     </div>
   )
 }
