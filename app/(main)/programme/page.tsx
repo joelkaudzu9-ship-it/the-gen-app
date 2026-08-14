@@ -65,8 +65,21 @@ export default function ProgrammePage() {
     })
   }
 
+  function getCurrentDay() {
+    const startDate = new Date('2026-08-17')
+    const now = new Date()
+    const diff = Math.floor((now.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24))
+    return Math.min(Math.max(diff + 1, 1), 5)
+  }
+
   const days = [1, 2, 3, 4, 5]
   const dayNames = ['Day 1', 'Day 2', 'Day 3', 'Day 4', 'Day 5']
+
+  // Auto-select current day on load
+  useEffect(() => {
+    const currentDay = getCurrentDay()
+    setSelectedDay(currentDay)
+  }, [])
 
   if (loading) return <ProgrammeSkeleton />
 

@@ -16,11 +16,13 @@ import {
   Megaphone,
   RefreshCw,
   Ticket,
+  Clock,
 } from 'lucide-react'
 import { QRScanner } from '@/components/organiser/QRScanner'
 import { AnnouncementPublisher } from '@/components/organiser/AnnouncementPublisher'
 import { HelpDesk } from '@/components/organiser/HelpDesk'
 import { CouponManager } from '@/components/organiser/CouponManager'
+import { SessionManager } from '@/components/organiser/SessionManager'
 import toast from 'react-hot-toast'
 
 export const dynamic = 'force-dynamic'
@@ -52,7 +54,7 @@ export default function DashboardPage() {
   const [stats, setStats] = useState<DashboardStats>(defaultStats)
   const [loading, setLoading] = useState(true)
   const [refreshing, setRefreshing] = useState(false)
-  const [activeTab, setActiveTab] = useState<'overview' | 'scanner' | 'announcements' | 'help' | 'coupons'>('overview')
+  const [activeTab, setActiveTab] = useState<'overview' | 'scanner' | 'announcements' | 'help' | 'coupons' | 'sessions'>('overview')
 
   useEffect(() => {
     fetchStats()
@@ -150,6 +152,7 @@ export default function DashboardPage() {
     { id: 'scanner', label: 'Scanner', icon: Camera },
     { id: 'announcements', label: 'Announce', icon: Megaphone },
     { id: 'coupons', label: 'Coupons', icon: Ticket },
+    { id: 'sessions', label: 'Sessions', icon: Clock },
     { id: 'help', label: 'Help', icon: LifeBuoy },
   ] as const
 
@@ -247,8 +250,8 @@ export default function DashboardPage() {
         </GlassCard>
       )}
 
-      {/* Tabs */}
-      <div className="grid grid-cols-5 gap-2">
+      {/* Tabs - Updated to include Sessions */}
+      <div className="grid grid-cols-6 gap-2">
         {tabs.map((tab) => {
           const isActive = activeTab === tab.id
           const Icon = tab.icon
@@ -269,7 +272,7 @@ export default function DashboardPage() {
               <Icon size={18} style={{ color: isActive ? '#0A0A0A' : 'rgba(255,255,255,0.6)' }} />
               <span
                 style={{
-                  fontSize: '10px',
+                  fontSize: '9px',
                   fontWeight: 500,
                   color: isActive ? '#0A0A0A' : 'rgba(255,255,255,0.6)',
                 }}
@@ -310,6 +313,7 @@ export default function DashboardPage() {
         {activeTab === 'scanner' && <QRScanner />}
         {activeTab === 'announcements' && <AnnouncementPublisher />}
         {activeTab === 'coupons' && <CouponManager />}
+        {activeTab === 'sessions' && <SessionManager />}
         {activeTab === 'help' && <HelpDesk />}
       </div>
     </div>
