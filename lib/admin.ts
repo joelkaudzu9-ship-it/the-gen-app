@@ -5,16 +5,15 @@ import { supabase } from './supabase'
 // ADMIN CONFIGURATION
 // ============================================
 export const ADMIN_EMAILS = [
-  'admin@example.com',
-  'organizer@genapp.com',
-  'your-email@example.com',
-  // Add more admin emails here
+  'gizmokzu@gmail.com',
+  'joelkaudzu9@gmail.com',
+  'elshaddaimpaso@gmail.com',
 ]
 
 // ============================================
 // CHECK IF USER IS ADMIN
 // ============================================
-export function isAdmin(email: string | undefined): boolean {
+export function isAdmin(email: string | undefined | null): boolean {
   if (!email) return false
   return ADMIN_EMAILS.includes(email.toLowerCase())
 }

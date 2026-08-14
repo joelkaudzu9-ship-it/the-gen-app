@@ -3,20 +3,10 @@
 
 import { useState, useEffect } from 'react'
 import { supabase } from '@/lib/supabase'
+import { isAdmin } from '@/lib/admin'
 import { motion } from 'framer-motion'
 import toast from 'react-hot-toast'
 import { Eye, EyeOff } from 'lucide-react'
-
-const ADMIN_EMAILS = [
-  'gizmokzu@gmail.com',
-  'joelkaudzu9@gmail.com',
-  'elshaddaimpaso@gmail.com',
-]
-
-function isAdmin(email: string | undefined): boolean {
-  if (!email) return false
-  return ADMIN_EMAILS.includes(email.toLowerCase())
-}
 
 interface AuthFormProps {
   mode: 'login' | 'register'
@@ -270,6 +260,9 @@ export default function AuthForm({ mode, onSuccess }: AuthFormProps) {
 
           {mode === 'login' && (
             <div className="mt-4 text-center">
+              <p className="text-white/20 text-xs">
+                🔐 Admin users will be redirected to the dashboard
+              </p>
             </div>
           )}
         </div>

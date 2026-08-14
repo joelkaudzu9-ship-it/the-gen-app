@@ -3,9 +3,11 @@
 
 import { useState, useEffect } from 'react'
 import { supabase } from '@/lib/supabase'
+import { isAdmin } from '@/lib/admin'
+import { sendPushNotification } from '@/lib/onesignal'
 import { GlassCard } from '@/components/ui/GlassCard'
 import { AnimatedSection } from '@/components/ui/AnimatedSection'
-import { FileText, Download, Book, Calendar, Upload, Trash2, Edit2 } from 'lucide-react'
+import { FileText, Download, Book, Music, Video, Link2, Trash2, Edit2, ExternalLink } from 'lucide-react'
 import { GoldButton } from '@/components/ui/GoldButton'
 import toast from 'react-hot-toast'
 
@@ -20,21 +22,28 @@ interface Resource {
   description: string
   file_url: string
   file_type: string
-  file_size: string
+  file_size: string | null
+  resource_type: 'file' | 'link'
   day: number
   created_at: string
 }
 
+type UploadMode = 'file' | 'link'
+
 export default function ResourcesPage() {
   const [resources, setResources] = useState<Resource[]>([])
   const [loading, setLoading] = useState(true)
-  const [isAdmin, setIsAdmin] = useState(false)
+  const [admin, setAdmin] = useState(false)
   const [showUpload, setShowUpload] = useState(false)
+  const [currentDay, setCurrentDay] = useState<number | null>(null)
 
   // Upload form state
+  const [uploadMode, setUploadMode] = useState<UploadMode>('file')
   const [uploadTitle, setUploadTitle] = useState('')
   const [uploadDescription, setUploadDescription] = useState('')
   const [uploadFile, setUploadFile] = useState<File | null>(null)
+  const [uploadLinkUrl, setUploadLinkUrl] = useState('')
+  const [uploadLinkLabel, setUploadLinkLabel] = useState<'Video' | 'Audio' | 'Link'>('Video')
   const [uploadDay, setUploadDay] = useState(1)
   const [uploading, setUploading] = useState(false)
   const [editingResource, setEditingResource] = useState<Resource | null>(null)
@@ -42,6 +51,7 @@ export default function ResourcesPage() {
   useEffect(() => {
     fetchResources()
     checkAdminStatus()
+    fetchCurrentDay()
   }, [])
 
   async function fetchResources() {
@@ -64,23 +74,64 @@ export default function ResourcesPage() {
   async function checkAdminStatus() {
     try {
       const { data: { user } } = await supabase.auth.getUser()
-      if (user) {
-        const { data: participant } = await supabase
-          .from('participants')
-          .select('role')
-          .eq('user_id', user.id)
-          .single()
-        setIsAdmin(participant?.role === 'admin')
-      }
+      setAdmin(isAdmin(user?.email))
     } catch (error) {
       console.error('Error checking admin status:', error)
     }
   }
 
+  async function fetchCurrentDay() {
+    try {
+      const todayStr = new Date().toISOString().split('T')[0]
+      const { data } = await supabase
+        .from('coupon_settings')
+        .select('day, date')
+        .eq('date', todayStr)
+        .maybeSingle()
+
+      setCurrentDay(data?.day ?? null)
+    } catch (error) {
+      console.error('Error fetching current day:', error)
+    }
+  }
+
+  function resetForm() {
+    setUploadMode('file')
+    setUploadTitle('')
+    setUploadDescription('')
+    setUploadFile(null)
+    setUploadLinkUrl('')
+    setUploadLinkLabel('Video')
+    setUploadDay(1)
+    setEditingResource(null)
+  }
+
+  async function notifyNewResource(title: string, day: number) {
+    try {
+      await sendPushNotification(
+        '📚 New resource available',
+        `${title} — Day ${day}`,
+        { type: 'resource' }
+      )
+    } catch (error) {
+      // Don't let a notification failure block the upload success flow
+      console.error('Error sending resource notification:', error)
+    }
+  }
+
   async function handleUpload(e: React.FormEvent) {
     e.preventDefault()
-    if (!uploadTitle || !uploadDescription || !uploadFile) {
-      toast.error('Please fill in all fields and select a file')
+
+    if (!uploadTitle || !uploadDescription) {
+      toast.error('Please fill in the title and description')
+      return
+    }
+    if (uploadMode === 'file' && !uploadFile) {
+      toast.error('Please select a file')
+      return
+    }
+    if (uploadMode === 'link' && !uploadLinkUrl.trim()) {
+      toast.error('Please paste a link')
       return
     }
 
@@ -89,31 +140,43 @@ export default function ResourcesPage() {
       const { data: { user } } = await supabase.auth.getUser()
       if (!user) throw new Error('Not authenticated')
 
-      // Upload file to Supabase Storage
-      const fileExt = uploadFile.name.split('.').pop()
-      const fileName = `${Date.now()}.${fileExt}`
-      const filePath = `resources/${fileName}`
+      let fileUrl: string
+      let fileType: string
+      let fileSize: string | null
 
-      const { error: uploadError } = await supabase.storage
-        .from('resources')
-        .upload(filePath, uploadFile)
+      if (uploadMode === 'file' && uploadFile) {
+        const fileExt = uploadFile.name.split('.').pop()
+        const fileName = `${Date.now()}.${fileExt}`
+        const filePath = `resources/${fileName}`
 
-      if (uploadError) throw uploadError
+        const { error: uploadError } = await supabase.storage
+          .from('resources')
+          .upload(filePath, uploadFile)
 
-      // Get public URL
-      const { data: urlData } = supabase.storage
-        .from('resources')
-        .getPublicUrl(filePath)
+        if (uploadError) throw uploadError
 
-      // Save to database
+        const { data: urlData } = supabase.storage
+          .from('resources')
+          .getPublicUrl(filePath)
+
+        fileUrl = urlData.publicUrl
+        fileType = fileExt?.toUpperCase() || 'FILE'
+        fileSize = `${(uploadFile.size / 1024).toFixed(0)} KB`
+      } else {
+        fileUrl = uploadLinkUrl.trim()
+        fileType = uploadLinkLabel
+        fileSize = null
+      }
+
       const { error: dbError } = await supabase
         .from('resources')
         .insert({
           title: uploadTitle,
           description: uploadDescription,
-          file_url: urlData.publicUrl,
-          file_type: fileExt?.toUpperCase() || 'FILE',
-          file_size: `${(uploadFile.size / 1024).toFixed(0)} KB`,
+          file_url: fileUrl,
+          file_type: fileType,
+          file_size: fileSize,
+          resource_type: uploadMode,
           day: uploadDay,
           uploaded_by: user.id,
         })
@@ -121,10 +184,9 @@ export default function ResourcesPage() {
       if (dbError) throw dbError
 
       toast.success('Resource uploaded successfully!')
-      setUploadTitle('')
-      setUploadDescription('')
-      setUploadFile(null)
-      setUploadDay(1)
+      await notifyNewResource(uploadTitle, uploadDay)
+
+      resetForm()
       setShowUpload(false)
       await fetchResources()
     } catch (error) {
@@ -154,11 +216,16 @@ export default function ResourcesPage() {
     }
   }
 
-  async function handleEdit(resource: Resource) {
+  function handleEdit(resource: Resource) {
     setEditingResource(resource)
+    setUploadMode(resource.resource_type)
     setUploadTitle(resource.title)
     setUploadDescription(resource.description)
     setUploadDay(resource.day)
+    if (resource.resource_type === 'link') {
+      setUploadLinkUrl(resource.file_url)
+      setUploadLinkLabel((resource.file_type as 'Video' | 'Audio' | 'Link') || 'Link')
+    }
     setShowUpload(true)
   }
 
@@ -168,25 +235,32 @@ export default function ResourcesPage() {
 
     setUploading(true)
     try {
+      const updateData: Record<string, any> = {
+        title: uploadTitle,
+        description: uploadDescription,
+        day: uploadDay,
+        updated_at: new Date().toISOString(),
+      }
+
+      // Editing a link resource lets you correct the URL/label without
+      // re-uploading; file-backed resources keep their existing file
+      if (editingResource.resource_type === 'link') {
+        updateData.file_url = uploadLinkUrl.trim()
+        updateData.file_type = uploadLinkLabel
+      }
+
       const { error } = await supabase
         .from('resources')
-        .update({
-          title: uploadTitle,
-          description: uploadDescription,
-          day: uploadDay,
-          updated_at: new Date().toISOString(),
-        })
+        .update(updateData)
         .eq('id', editingResource.id)
 
       if (error) throw error
 
       toast.success('Resource updated successfully!')
-      setUploadTitle('')
-      setUploadDescription('')
-      setUploadFile(null)
-      setUploadDay(1)
+      // Deliberately no push notification here — edits to something
+      // participants may have already seen shouldn't re-notify everyone
+      resetForm()
       setShowUpload(false)
-      setEditingResource(null)
       await fetchResources()
     } catch (error) {
       console.error('Update error:', error)
@@ -196,24 +270,20 @@ export default function ResourcesPage() {
     }
   }
 
-  const fileIcons: Record<string, any> = {
-    PDF: FileText,
-    DOC: FileText,
-    DOCX: FileText,
-    PNG: FileText,
-    JPG: FileText,
-    JPEG: FileText,
+  function getResourceIcon(resource: Resource) {
+    const type = resource.file_type?.toUpperCase() || ''
+    if (resource.resource_type === 'link') {
+      if (type === 'VIDEO') return Video
+      if (type === 'AUDIO') return Music
+      return Link2
+    }
+    if (['MP3', 'WAV', 'M4A', 'AAC'].includes(type)) return Music
+    if (['MP4', 'MOV', 'WEBM', 'AVI'].includes(type)) return Video
+    return FileText
   }
 
   const days = [1, 2, 3, 4, 5]
   const dayNames = ['Day 1', 'Day 2', 'Day 3', 'Day 4', 'Day 5']
-
-  function getCurrentDay() {
-    const startDate = new Date('2026-08-13')
-    const now = new Date()
-    const diff = Math.floor((now.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24))
-    return Math.min(Math.max(diff + 1, 1), 5)
-  }
 
   if (loading) {
     return (
@@ -228,17 +298,13 @@ export default function ResourcesPage() {
       <div className="max-w-md mx-auto">
         <div className="flex items-center justify-between mb-4">
           <h1 className="text-2xl font-bold text-white">Resources</h1>
-          {isAdmin && (
+          {admin && (
             <button
               onClick={() => {
-                setShowUpload(!showUpload)
-                setEditingResource(null)
-                if (!showUpload) {
-                  setUploadTitle('')
-                  setUploadDescription('')
-                  setUploadFile(null)
-                  setUploadDay(1)
+                if (showUpload) {
+                  resetForm()
                 }
+                setShowUpload(!showUpload)
               }}
               className="btn-gold text-sm px-4 py-2"
             >
@@ -256,7 +322,9 @@ export default function ResourcesPage() {
               </div>
               <div>
                 <h2 className="text-white font-semibold">Today's Materials</h2>
-                <p className="text-white/40 text-sm">Day {getCurrentDay()} resources</p>
+                <p className="text-white/40 text-sm">
+                  {currentDay ? `Day ${currentDay} resources` : 'Retreat has not started yet'}
+                </p>
               </div>
             </div>
           </GlassCard>
@@ -266,9 +334,37 @@ export default function ResourcesPage() {
         {showUpload && (
           <GlassCard dark className="mb-4">
             <h3 className="text-white font-semibold mb-3">
-              {editingResource ? 'Edit Resource' : 'Upload New Resource'}
+              {editingResource ? 'Edit Resource' : 'Add New Resource'}
             </h3>
             <form onSubmit={editingResource ? handleUpdate : handleUpload} className="space-y-3">
+
+              {!editingResource && (
+                <div className="flex gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setUploadMode('file')}
+                    className={`flex-1 py-2 rounded-xl text-sm font-medium border ${
+                      uploadMode === 'file'
+                        ? 'bg-brand-gold/15 border-brand-gold/60 text-brand-gold'
+                        : 'bg-white/5 border-white/10 text-white/40'
+                    }`}
+                  >
+                    Upload a file
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setUploadMode('link')}
+                    className={`flex-1 py-2 rounded-xl text-sm font-medium border ${
+                      uploadMode === 'link'
+                        ? 'bg-brand-gold/15 border-brand-gold/60 text-brand-gold'
+                        : 'bg-white/5 border-white/10 text-white/40'
+                    }`}
+                  >
+                    Add a link
+                  </button>
+                </div>
+              )}
+
               <div>
                 <label className="text-white/80 text-sm font-medium mb-1 block">
                   Title
@@ -277,8 +373,8 @@ export default function ResourcesPage() {
                   type="text"
                   value={uploadTitle}
                   onChange={(e) => setUploadTitle(e.target.value)}
-                  className="w-full px-4 py-2 rounded-2xl border border-white/10 bg-white/5 text-white focus:border-brand-gold focus:outline-none"
-                  placeholder="Resource title"
+                  className="input-gold"
+                  placeholder="e.g. Sermon: The Road to Emmaus"
                   required
                 />
               </div>
@@ -290,8 +386,8 @@ export default function ResourcesPage() {
                 <textarea
                   value={uploadDescription}
                   onChange={(e) => setUploadDescription(e.target.value)}
-                  className="w-full px-4 py-2 rounded-2xl border border-white/10 bg-white/5 text-white focus:border-brand-gold focus:outline-none"
-                  placeholder="Resource description"
+                  className="input-gold"
+                  placeholder="Short description"
                   rows={2}
                   required
                 />
@@ -304,7 +400,7 @@ export default function ResourcesPage() {
                 <select
                   value={uploadDay}
                   onChange={(e) => setUploadDay(Number(e.target.value))}
-                  className="w-full px-4 py-2 rounded-2xl border border-white/10 bg-white/5 text-white focus:border-brand-gold focus:outline-none"
+                  className="input-gold"
                 >
                   {days.map((day) => (
                     <option key={day} value={day}>{dayNames[day - 1]}</option>
@@ -312,7 +408,7 @@ export default function ResourcesPage() {
                 </select>
               </div>
 
-              {!editingResource && (
+              {uploadMode === 'file' && !editingResource && (
                 <div>
                   <label className="text-white/80 text-sm font-medium mb-1 block">
                     File
@@ -320,14 +416,49 @@ export default function ResourcesPage() {
                   <input
                     type="file"
                     onChange={(e) => setUploadFile(e.target.files?.[0] || null)}
-                    className="w-full px-4 py-2 rounded-2xl border border-white/10 bg-white/5 text-white file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-brand-gold file:text-black hover:file:bg-brand-gold/80"
+                    className="w-full text-white text-sm"
                     required
                   />
+                  <p className="text-white/30 text-xs mt-1">
+                    PDF, doc, image, audio, or video file
+                  </p>
                 </div>
               )}
 
+              {uploadMode === 'link' && (
+                <>
+                  <div>
+                    <label className="text-white/80 text-sm font-medium mb-1 block">
+                      Link type
+                    </label>
+                    <select
+                      value={uploadLinkLabel}
+                      onChange={(e) => setUploadLinkLabel(e.target.value as 'Video' | 'Audio' | 'Link')}
+                      className="input-gold"
+                    >
+                      <option value="Video">Video (e.g. YouTube)</option>
+                      <option value="Audio">Audio (e.g. sermon recording)</option>
+                      <option value="Link">General link</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label className="text-white/80 text-sm font-medium mb-1 block">
+                      URL
+                    </label>
+                    <input
+                      type="url"
+                      value={uploadLinkUrl}
+                      onChange={(e) => setUploadLinkUrl(e.target.value)}
+                      className="input-gold"
+                      placeholder="https://..."
+                      required
+                    />
+                  </div>
+                </>
+              )}
+
               <GoldButton type="submit" loading={uploading} fullWidth>
-                {editingResource ? 'Update Resource' : 'Upload Resource'}
+                {editingResource ? 'Update Resource' : 'Add Resource'}
               </GoldButton>
             </form>
           </GlassCard>
@@ -341,7 +472,9 @@ export default function ResourcesPage() {
             </GlassCard>
           ) : (
             resources.map((resource, index) => {
-              const Icon = fileIcons[resource.file_type] || FileText
+              const Icon = getResourceIcon(resource)
+              const isLink = resource.resource_type === 'link'
+
               return (
                 <AnimatedSection key={resource.id} delay={0.1 + index * 0.05}>
                   <GlassCard dark hover>
@@ -356,9 +489,11 @@ export default function ResourcesPage() {
                           <span className="text-xs text-white/30 bg-white/5 px-2 py-0.5 rounded-full">
                             {resource.file_type}
                           </span>
-                          <span className="text-xs text-white/30">
-                            {resource.file_size}
-                          </span>
+                          {resource.file_size && (
+                            <span className="text-xs text-white/30">
+                              {resource.file_size}
+                            </span>
+                          )}
                           <span className="text-xs text-brand-gold/50">
                             Day {resource.day}
                           </span>
@@ -367,14 +502,18 @@ export default function ResourcesPage() {
                       <div className="flex items-center gap-1">
                         <a
                           href={resource.file_url}
-                          download
-                          target="_blank"
-                          rel="noopener noreferrer"
+                          {...(isLink
+                            ? { target: '_blank', rel: 'noopener noreferrer' }
+                            : { download: true, target: '_blank', rel: 'noopener noreferrer' })}
                           className="p-2 rounded-xl hover:bg-brand-gold/10 transition-colors"
                         >
-                          <Download size={18} className="text-brand-gold" />
+                          {isLink ? (
+                            <ExternalLink size={18} className="text-brand-gold" />
+                          ) : (
+                            <Download size={18} className="text-brand-gold" />
+                          )}
                         </a>
-                        {isAdmin && (
+                        {admin && (
                           <>
                             <button
                               onClick={() => handleEdit(resource)}
