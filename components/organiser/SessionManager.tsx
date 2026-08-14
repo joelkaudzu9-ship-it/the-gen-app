@@ -68,12 +68,16 @@ export function SessionManager() {
   }
 
   function editSession(session: Session) {
+    // Convert UTC to local time for editing
+    const start = new Date(session.start_time)
+    const end = new Date(session.end_time)
+    
     setTitle(session.title)
     setLocation(session.location || '')
     setSpeaker(session.speaker || '')
     setDescription(session.description || '')
-    setStartTime(session.start_time.slice(11, 16))
-    setEndTime(session.end_time.slice(11, 16))
+    setStartTime(start.toTimeString().slice(0, 5))
+    setEndTime(end.toTimeString().slice(0, 5))
     setEditingId(session.id)
   }
 
@@ -86,20 +90,24 @@ export function SessionManager() {
 
     setSaving(true)
     try {
-      // Retreat dates: August 17-21, 2026
       const retreatStart = new Date('2026-08-17')
       const baseDate = new Date(retreatStart)
       baseDate.setDate(baseDate.getDate() + selectedDay - 1)
       const dateStr = baseDate.toISOString().split('T')[0]
 
+      // Create dates with local timezone
+      const startDateTime = new Date(`${dateStr}T${startTime}:00`)
+      const endDateTime = new Date(`${dateStr}T${endTime}:00`)
+
+      // Store as UTC ISO strings
       const sessionData = {
         day: selectedDay,
         title: title.trim(),
         location: location.trim() || null,
         speaker: speaker.trim() || null,
         description: description.trim() || null,
-        start_time: `${dateStr}T${startTime}:00`,
-        end_time: `${dateStr}T${endTime}:00`,
+        start_time: startDateTime.toISOString(),
+        end_time: endDateTime.toISOString(),
       }
 
       let error
@@ -148,9 +156,10 @@ export function SessionManager() {
     }
   }
 
-  function formatTime(timeStr: string) {
-    if (!timeStr) return ''
-    return new Date(`2000-01-01T${timeStr}`).toLocaleTimeString('en-US', {
+  function formatDisplayTime(isoString: string) {
+    if (!isoString) return ''
+    const date = new Date(isoString)
+    return date.toLocaleTimeString('en-US', {
       hour: 'numeric',
       minute: '2-digit',
       hour12: true,
@@ -167,7 +176,6 @@ export function SessionManager() {
 
   return (
     <div className="space-y-4">
-      {/* Day Selector */}
       <GlassCard dark>
         <div className="flex gap-2 overflow-x-auto">
           {[1, 2, 3, 4, 5].map((day) => (
@@ -186,7 +194,6 @@ export function SessionManager() {
         </div>
       </GlassCard>
 
-      {/* Form */}
       <GlassCard dark>
         <div className="flex items-center justify-between mb-4">
           <h3 className="text-white font-semibold flex items-center gap-2">
@@ -279,7 +286,6 @@ export function SessionManager() {
         </form>
       </GlassCard>
 
-      {/* Sessions List */}
       <GlassCard dark>
         <h4 className="text-white font-semibold mb-3 flex items-center gap-2">
           <Clock size={16} className="text-brand-gold" />
@@ -301,7 +307,7 @@ export function SessionManager() {
                     <h5 className="text-white font-medium text-sm">{session.title}</h5>
                     <div className="flex flex-wrap gap-x-3 gap-y-0.5 mt-1 text-xs text-white/50">
                       <span className="flex items-center gap-1">
-                        <Clock size={12} /> {formatTime(session.start_time.slice(11, 16))} – {formatTime(session.end_time.slice(11, 16))}
+                        <Clock size={12} /> {formatDisplayTime(session.start_time)} – {formatDisplayTime(session.end_time)}
                       </span>
                       {session.location && (
                         <span className="flex items-center gap-1">
