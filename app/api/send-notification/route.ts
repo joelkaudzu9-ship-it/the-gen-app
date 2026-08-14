@@ -3,7 +3,7 @@ import { NextRequest, NextResponse } from 'next/server'
 
 const ONESIGNAL_APP_ID = process.env.NEXT_PUBLIC_ONESIGNAL_APP_ID || ''
 const ONESIGNAL_API_KEY = process.env.ONESIGNAL_API_KEY || ''
-const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || ''
+const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || 'https://the-gen-app.vercel.app'
 
 export async function POST(request: NextRequest) {
   try {
