@@ -7,8 +7,18 @@ import { GlassCard } from '@/components/ui/GlassCard'
 import toast from 'react-hot-toast'
 import { CheckCircle, Coffee, Utensils, Clock, Ticket } from 'lucide-react'
 
+interface Coupon {
+  id: string
+  participant_id: string
+  meal_type: string
+  day: number
+  used: boolean
+  used_at: string | null
+  created_at: string
+}
+
 export function FoodCoupon() {
-  const [coupons, setCoupons] = useState<any[]>([])
+  const [coupons, setCoupons] = useState<Coupon[]>([])
   const [loading, setLoading] = useState(true)
   const [participant, setParticipant] = useState<any>(null)
 
@@ -36,7 +46,7 @@ export function FoodCoupon() {
         .order('day', { ascending: true })
 
       if (error) throw error
-      if (data) setCoupons(data)
+      if (data) setCoupons(data as Coupon[])
     } catch (error) {
       console.error('Error fetching coupons:', error)
       toast.error('Failed to load coupons')
@@ -69,11 +79,11 @@ export function FoodCoupon() {
   }
 
   // Group coupons by day
-  const groupedCoupons = coupons.reduce((acc, coupon) => {
+  const groupedCoupons = coupons.reduce<Record<number, Coupon[]>>((acc, coupon) => {
     if (!acc[coupon.day]) acc[coupon.day] = []
     acc[coupon.day].push(coupon)
     return acc
-  }, {} as Record<number, any[]>)
+  }, {})
 
   const currentDay = Math.min(Math.max(Math.floor((new Date().getTime() - new Date('2026-08-13').getTime()) / (1000 * 60 * 60 * 24)) + 1, 1), 5)
   const currentMeal = getCurrentMeal()
@@ -140,8 +150,8 @@ export function FoodCoupon() {
           <div className="space-y-4">
             {Object.entries(groupedCoupons).map(([day, dayCoupons]) => {
               const dayNum = parseInt(day)
-              const allUsed = dayCoupons.every((c: any) => c.used)
-              const hasAvailable = dayCoupons.some((c: any) => !c.used)
+              const allUsed = dayCoupons.every((c: Coupon) => c.used)
+              const hasAvailable = dayCoupons.some((c: Coupon) => !c.used)
               const isToday = dayNum === currentDay
 
               return (
@@ -157,20 +167,22 @@ export function FoodCoupon() {
                       {isToday && <span className="ml-2 text-xs text-brand-gold">● Today</span>}
                     </h4>
                     <span className={`text-xs ${allUsed ? 'text-green-400' : hasAvailable ? 'text-brand-gold' : 'text-white/30'}`}>
-                      {allUsed ? '✅ All Used' : hasAvailable ? `${dayCoupons.filter((c: any) => !c.used).length} available` : 'No coupons'}
+                      {allUsed ? '✅ All Used' : hasAvailable ? `${dayCoupons.filter((c: Coupon) => !c.used).length} available` : 'No coupons'}
                     </span>
                   </div>
                   <div className="grid grid-cols-3 gap-2">
-                    {dayCoupons.map((coupon: any) => {
+                    {dayCoupons.map((coupon: Coupon) => {
                       const Icon = mealIcons[coupon.meal_type] || Utensils
                       const color = mealColors[coupon.meal_type] || 'text-white/40'
+                      const isCurrentMeal = isToday && coupon.meal_type === currentMeal && !coupon.used
+                      
                       return (
                         <div
                           key={coupon.id}
                           className={`p-2 rounded-lg text-center ${
                             coupon.used
                               ? 'bg-white/5 opacity-50'
-                              : isToday && coupon.meal_type === currentMeal
+                              : isCurrentMeal
                               ? 'bg-brand-gold/20 border border-brand-gold'
                               : 'bg-white/10'
                           }`}
@@ -182,7 +194,7 @@ export function FoodCoupon() {
                           {coupon.used && (
                             <p className="text-[10px] text-green-400">✓ Used</p>
                           )}
-                          {!coupon.used && isToday && coupon.meal_type === currentMeal && (
+                          {isCurrentMeal && (
                             <p className="text-[10px] text-brand-gold animate-pulse">Available Now</p>
                           )}
                         </div>
