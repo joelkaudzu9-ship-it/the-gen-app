@@ -4,17 +4,17 @@
 import { useEffect, useState } from 'react'
 import { supabase } from '@/lib/supabase'
 import { GlassCard } from '@/components/ui/GlassCard'
-import { AnimatedSection } from '@/components/ui/AnimatedSection'
-import { 
-  Users, 
-  UserCheck, 
-  Bus, 
-  LifeBuoy, 
+import {
+  Users,
+  UserCheck,
+  Bus,
+  LifeBuoy,
   Calendar,
+  LayoutGrid,
+  Camera,
+  Megaphone,
   RefreshCw,
-  Eye,
-  CheckCircle,
-  Clock,
+  Ticket,
 } from 'lucide-react'
 import { QRScanner } from '@/components/organiser/QRScanner'
 import { AnnouncementPublisher } from '@/components/organiser/AnnouncementPublisher'
@@ -42,12 +42,15 @@ const defaultStats: DashboardStats = {
   activeBuses: 0,
   pendingHelpRequests: 0,
   currentSession: null,
-  nextSession: null
+  nextSession: null,
 }
+
+const GOLD_GRADIENT = 'linear-gradient(135deg, #D4AF37 0%, #B8960F 50%, #8B7500 100%)'
 
 export default function DashboardPage() {
   const [stats, setStats] = useState<DashboardStats>(defaultStats)
   const [loading, setLoading] = useState(true)
+  const [refreshing, setRefreshing] = useState(false)
   const [activeTab, setActiveTab] = useState<'overview' | 'scanner' | 'announcements' | 'help' | 'coupons'>('overview')
 
   useEffect(() => {
@@ -113,95 +116,161 @@ export default function DashboardPage() {
     }
   }
 
+  const handleRefresh = async () => {
+    setRefreshing(true)
+    await fetchStats()
+    setRefreshing(false)
+    toast.success('Dashboard updated')
+  }
+
   if (loading) {
     return (
-      <div className="flex items-center justify-center min-h-[60vh]">
-        <div className="animate-spin rounded-full h-12 w-12 border-4 border-[#D4AF37] border-t-transparent" />
+      <div className="flex items-center justify-center" style={{ minHeight: '60vh' }}>
+        <div
+          className="animate-spin rounded-full"
+          style={{ width: 48, height: 48, border: '4px solid #D4AF37', borderTopColor: 'transparent' }}
+        />
       </div>
     )
   }
 
+  const tabs = [
+    { id: 'overview', label: 'Overview', icon: LayoutGrid },
+    { id: 'scanner', label: 'Scanner', icon: Camera },
+    { id: 'announcements', label: 'Announce', icon: Megaphone },
+    { id: 'coupons', label: 'Coupons', icon: Ticket },
+    { id: 'help', label: 'Help', icon: LifeBuoy },
+  ] as const
+
   return (
     <div className="space-y-4 pb-24">
+      {/* Header */}
       <div className="flex items-center justify-between">
         <span className="text-white/40 text-xs">Updated: {new Date().toLocaleTimeString()}</span>
+        <button
+          onClick={handleRefresh}
+          disabled={refreshing}
+          className="flex items-center gap-1 rounded-full"
+          style={{
+            padding: '6px 12px',
+            background: 'rgba(212, 175, 55, 0.1)',
+            border: '1px solid rgba(212, 175, 55, 0.2)',
+            color: '#D4AF37',
+            fontSize: '12px',
+            fontWeight: 500,
+            cursor: refreshing ? 'default' : 'pointer',
+            opacity: refreshing ? 0.6 : 1,
+            transition: 'opacity 0.2s ease',
+          }}
+        >
+          <RefreshCw size={13} className={refreshing ? 'animate-spin' : ''} />
+          Refresh
+        </button>
       </div>
 
+      {/* Stats - Compact */}
       <div className="grid grid-cols-2 gap-3">
-        <GlassCard dark className="text-center py-3">
-          <Users size={20} className="text-[#D4AF37] mx-auto mb-1" />
+        <GlassCard dark className="text-center" style={{ padding: '12px' }}>
+          <Users size={20} className="text-brand-gold mx-auto mb-1" />
           <p className="text-xl font-bold text-white">{stats.totalParticipants || 0}</p>
           <p className="text-white/40 text-xs">Total</p>
         </GlassCard>
 
-        <GlassCard dark className="text-center py-3">
+        <GlassCard dark className="text-center" style={{ padding: '12px' }}>
           <UserCheck size={20} className="text-green-500 mx-auto mb-1" />
           <p className="text-xl font-bold text-white">{stats.checkedIn || 0}</p>
           <p className="text-white/40 text-xs">Checked In</p>
-          <p className="text-[10px] text-green-500">{stats.attendancePercentage || 0}%</p>
+          <p className="text-green-500" style={{ fontSize: '10px' }}>{stats.attendancePercentage || 0}%</p>
         </GlassCard>
 
-        <GlassCard dark className="text-center py-3">
-          <Bus size={20} className="text-blue-500 mx-auto mb-1" />
+        <GlassCard dark className="text-center" style={{ padding: '12px' }}>
+          <Bus size={20} className="mx-auto mb-1" style={{ color: '#3B82F6' }} />
           <p className="text-xl font-bold text-white">{stats.activeBuses || 0}</p>
           <p className="text-white/40 text-xs">Buses</p>
         </GlassCard>
 
-        <GlassCard dark className="text-center py-3 relative">
-          <LifeBuoy size={20} className={`mx-auto mb-1 ${(stats.pendingHelpRequests || 0) > 0 ? 'text-red-500' : 'text-[#D4AF37]'}`} />
+        <GlassCard dark className="text-center relative" style={{ padding: '12px' }}>
+          <LifeBuoy
+            size={20}
+            className="mx-auto mb-1"
+            style={{ color: (stats.pendingHelpRequests || 0) > 0 ? '#EF4444' : '#D4AF37' }}
+          />
           <p className="text-xl font-bold text-white">{stats.pendingHelpRequests || 0}</p>
           <p className="text-white/40 text-xs">Help</p>
           {(stats.pendingHelpRequests || 0) > 0 && (
-            <span className="absolute -top-1 -right-1 w-3 h-3 bg-red-500 rounded-full animate-pulse" />
+            <span
+              className="absolute rounded-full animate-pulse"
+              style={{ top: '-4px', right: '-4px', width: 12, height: 12, background: '#EF4444' }}
+            />
           )}
         </GlassCard>
       </div>
 
+      {/* Current Session - Compact */}
       {stats.currentSession && (
-        <GlassCard dark className="py-3 px-4">
+        <GlassCard dark style={{ padding: '12px 16px' }}>
           <div className="flex items-center gap-3">
-            <div className="p-2 rounded-xl bg-[#D4AF37]/10">
-              <Calendar size={18} className="text-[#D4AF37]" />
+            <div className="rounded-xl bg-brand-gold/10" style={{ padding: '8px' }}>
+              <Calendar size={18} className="text-brand-gold" />
             </div>
-            <div className="flex-1 min-w-0">
-              <p className="text-white/40 text-[10px] uppercase tracking-wider">Now</p>
-              <p className="text-white font-semibold text-sm truncate">{stats.currentSession.title}</p>
+            <div className="flex-1" style={{ minWidth: 0 }}>
+              <p className="text-white/40 uppercase tracking-wider" style={{ fontSize: '10px' }}>Now</p>
+              <p
+                className="text-white font-semibold text-sm"
+                style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}
+              >
+                {stats.currentSession.title}
+              </p>
               <p className="text-white/40 text-xs">
-                {stats.currentSession.location} • {new Date(stats.currentSession.start_time).toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'})}
+                {stats.currentSession.location} • {new Date(stats.currentSession.start_time).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
               </p>
             </div>
-            <span className="flex items-center gap-1 text-[10px] bg-red-500/20 text-red-400 px-2 py-1 rounded-full">
-              <span className="w-1.5 h-1.5 rounded-full bg-red-500 animate-pulse" />
+            <span
+              className="flex items-center gap-1 rounded-full"
+              style={{ fontSize: '10px', background: 'rgba(239,68,68,0.2)', color: '#F87171', padding: '4px 8px' }}
+            >
+              <span className="rounded-full animate-pulse" style={{ width: 6, height: 6, background: '#EF4444' }} />
               LIVE
             </span>
           </div>
         </GlassCard>
       )}
 
-      <div className="flex gap-1 overflow-x-auto pb-2 scrollbar-hide">
-        {[
-          { id: 'overview', label: '📊' },
-          { id: 'scanner', label: '📷' },
-          { id: 'announcements', label: '📢' },
-          { id: 'help', label: '🆘' },
-          { id: 'coupons', label: '🎫' },
-        ].map((tab) => (
-          <button
-            key={tab.id}
-            onClick={() => setActiveTab(tab.id as any)}
-            className={`
-              px-4 py-2 rounded-xl text-sm font-medium transition-all duration-300 whitespace-nowrap
-              ${activeTab === tab.id 
-                ? 'bg-gradient-to-r from-[#D4AF37] to-[#8B7500] text-black shadow-[0_4px_25px_rgba(212,175,55,0.35)]' 
-                : 'bg-white/5 text-white/60 hover:text-white border border-white/10'
-              }
-            `}
-          >
-            {tab.label}
-          </button>
-        ))}
+      {/* Tabs - Updated to include Coupons */}
+      <div className="grid grid-cols-5 gap-2">
+        {tabs.map((tab) => {
+          const isActive = activeTab === tab.id
+          const Icon = tab.icon
+          return (
+            <button
+              key={tab.id}
+              onClick={() => setActiveTab(tab.id)}
+              className="flex flex-col items-center rounded-xl"
+              style={{
+                gap: '4px',
+                padding: '10px 4px',
+                transition: 'all 0.3s ease',
+                background: isActive ? GOLD_GRADIENT : 'rgba(255,255,255,0.05)',
+                boxShadow: isActive ? '0 4px 25px rgba(212,175,55,0.35)' : 'none',
+                border: isActive ? 'none' : '1px solid rgba(255,255,255,0.1)',
+              }}
+            >
+              <Icon size={18} style={{ color: isActive ? '#0A0A0A' : 'rgba(255,255,255,0.6)' }} />
+              <span
+                style={{
+                  fontSize: '10px',
+                  fontWeight: 500,
+                  color: isActive ? '#0A0A0A' : 'rgba(255,255,255,0.6)',
+                }}
+              >
+                {tab.label}
+              </span>
+            </button>
+          )
+        })}
       </div>
 
+      {/* Tab Content */}
       <div className="mt-2">
         {activeTab === 'overview' && (
           <GlassCard dark>
@@ -209,10 +278,18 @@ export default function DashboardPage() {
               <span className="text-white/40 text-xs">Attendance</span>
               <span className="text-white/60 text-sm font-medium">{stats.attendancePercentage || 0}%</span>
             </div>
-            <div className="mt-2 h-2 bg-white/10 rounded-full overflow-hidden">
-              <div 
-                className="h-full bg-gradient-to-r from-[#D4AF37] to-[#8B7500] rounded-full transition-all duration-500"
-                style={{ width: `${stats.attendancePercentage || 0}%` }}
+            <div
+              className="mt-2 rounded-full"
+              style={{ height: '8px', background: 'rgba(255,255,255,0.1)', overflow: 'hidden' }}
+            >
+              <div
+                className="rounded-full"
+                style={{
+                  height: '100%',
+                  background: GOLD_GRADIENT,
+                  width: `${stats.attendancePercentage || 0}%`,
+                  transition: 'width 0.5s ease',
+                }}
               />
             </div>
             <p className="text-white/40 text-xs mt-1">{stats.checkedIn || 0} of {stats.totalParticipants || 0} checked in</p>
@@ -221,8 +298,8 @@ export default function DashboardPage() {
 
         {activeTab === 'scanner' && <QRScanner />}
         {activeTab === 'announcements' && <AnnouncementPublisher />}
-        {activeTab === 'help' && <HelpDesk />}
         {activeTab === 'coupons' && <CouponManager />}
+        {activeTab === 'help' && <HelpDesk />}
       </div>
     </div>
   )
