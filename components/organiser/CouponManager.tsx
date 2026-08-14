@@ -164,7 +164,7 @@ export function CouponManager() {
       // Get all checked-in participants
       const { data: participants, error: participantsError } = await supabase
         .from('participants')
-        .select('id, full_name')
+        .select('id')
         .eq('checked_in', true)
 
       if (participantsError) throw participantsError
@@ -203,7 +203,18 @@ export function CouponManager() {
         return
       }
 
-      // Build coupons array
+      // Delete existing coupons for this day
+      const { error: deleteError } = await supabase
+        .from('food_coupons')
+        .delete()
+        .eq('day', day)
+
+      if (deleteError) {
+        console.error('Delete error:', deleteError)
+        // Continue anyway - we'll try to insert
+      }
+
+      // Build coupons array - ONE coupon per meal type per participant
       const coupons = []
       for (const participant of participants) {
         for (const mealType of mealTypes) {
@@ -218,32 +229,23 @@ export function CouponManager() {
         }
       }
 
-      // Delete existing coupons for this day (to avoid duplicates)
-      const { error: deleteError } = await supabase
-        .from('food_coupons')
-        .delete()
-        .eq('day', day)
-
-      if (deleteError) {
-        console.error('Delete error:', deleteError)
-        // Continue anyway
-      }
-
-      // Insert new coupons in batches to avoid payload size issues
-      const batchSize = 500
-      for (let i = 0; i < coupons.length; i += batchSize) {
-        const batch = coupons.slice(i, i + batchSize)
+      // Insert in chunks to avoid payload size issues
+      const chunkSize = 500
+      let insertedCount = 0
+      for (let i = 0; i < coupons.length; i += chunkSize) {
+        const chunk = coupons.slice(i, i + chunkSize)
         const { error: insertError } = await supabase
           .from('food_coupons')
-          .insert(batch)
+          .insert(chunk)
 
         if (insertError) {
           console.error('Insert error:', insertError)
           throw insertError
         }
+        insertedCount += chunk.length
       }
 
-      toast.success(`✅ Generated ${coupons.length} coupons for Day ${day}`)
+      toast.success(`✅ Generated ${insertedCount} coupons for Day ${day}`)
       await fetchAllStats() // Refresh stats
     } catch (error: any) {
       console.error('Error generating coupons:', error)
