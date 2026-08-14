@@ -14,10 +14,12 @@ import {
   Camera,
   Megaphone,
   RefreshCw,
+  Ticket,
 } from 'lucide-react'
 import { QRScanner } from '@/components/organiser/QRScanner'
 import { AnnouncementPublisher } from '@/components/organiser/AnnouncementPublisher'
 import { HelpDesk } from '@/components/organiser/HelpDesk'
+import { CouponManager } from '@/components/organiser/CouponManager'
 import toast from 'react-hot-toast'
 
 export const dynamic = 'force-dynamic'
@@ -49,7 +51,7 @@ export default function DashboardPage() {
   const [stats, setStats] = useState<DashboardStats>(defaultStats)
   const [loading, setLoading] = useState(true)
   const [refreshing, setRefreshing] = useState(false)
-  const [activeTab, setActiveTab] = useState<'overview' | 'scanner' | 'announcements' | 'help'>('overview')
+  const [activeTab, setActiveTab] = useState<'overview' | 'scanner' | 'announcements' | 'help' | 'coupons'>('overview')
 
   useEffect(() => {
     fetchStats()
@@ -136,6 +138,7 @@ export default function DashboardPage() {
     { id: 'overview', label: 'Overview', icon: LayoutGrid },
     { id: 'scanner', label: 'Scanner', icon: Camera },
     { id: 'announcements', label: 'Announce', icon: Megaphone },
+    { id: 'coupons', label: 'Coupons', icon: Ticket },
     { id: 'help', label: 'Help', icon: LifeBuoy },
   ] as const
 
@@ -233,8 +236,8 @@ export default function DashboardPage() {
         </GlassCard>
       )}
 
-      {/* Tabs */}
-      <div className="grid grid-cols-4 gap-2">
+      {/* Tabs - Updated to include Coupons */}
+      <div className="grid grid-cols-5 gap-2">
         {tabs.map((tab) => {
           const isActive = activeTab === tab.id
           const Icon = tab.icon
@@ -255,7 +258,7 @@ export default function DashboardPage() {
               <Icon size={18} style={{ color: isActive ? '#0A0A0A' : 'rgba(255,255,255,0.6)' }} />
               <span
                 style={{
-                  fontSize: '11px',
+                  fontSize: '10px',
                   fontWeight: 500,
                   color: isActive ? '#0A0A0A' : 'rgba(255,255,255,0.6)',
                 }}
@@ -295,6 +298,7 @@ export default function DashboardPage() {
 
         {activeTab === 'scanner' && <QRScanner />}
         {activeTab === 'announcements' && <AnnouncementPublisher />}
+        {activeTab === 'coupons' && <CouponManager />}
         {activeTab === 'help' && <HelpDesk />}
       </div>
     </div>
