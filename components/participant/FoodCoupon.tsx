@@ -17,6 +17,11 @@ interface Coupon {
   created_at: string
 }
 
+interface DaySetting {
+  day: number
+  date: string | null
+}
+
 type MealKey = 'breakfast' | 'lunch' | 'dinner'
 
 const MEAL_META: Record<MealKey, { label: string; icon: any; color: string }> = {
@@ -27,6 +32,7 @@ const MEAL_META: Record<MealKey, { label: string; icon: any; color: string }> = 
 
 export function FoodCoupon() {
   const [coupons, setCoupons] = useState<Coupon[]>([])
+  const [daySettings, setDaySettings] = useState<DaySetting[]>([])
   const [loading, setLoading] = useState(true)
   const [participant, setParticipant] = useState<any>(null)
 
@@ -47,14 +53,21 @@ export function FoodCoupon() {
 
       if (pData) setParticipant(pData)
 
-      const { data, error } = await supabase
-        .from('food_coupons')
-        .select('*')
-        .eq('participant_id', pData?.id)
-        .order('day', { ascending: true })
+      const [{ data: couponData, error: couponError }, { data: settingsData }] = await Promise.all([
+        supabase
+          .from('food_coupons')
+          .select('*')
+          .eq('participant_id', pData?.id)
+          .order('day', { ascending: true }),
+        supabase
+          .from('coupon_settings')
+          .select('day, date')
+          .order('day', { ascending: true }),
+      ])
 
-      if (error) throw error
-      if (data) setCoupons(data as Coupon[])
+      if (couponError) throw couponError
+      if (couponData) setCoupons(couponData as Coupon[])
+      if (settingsData) setDaySettings(settingsData as DaySetting[])
     } catch (error) {
       console.error('Error fetching coupons:', error)
       toast.error('Failed to load coupons')
@@ -64,6 +77,14 @@ export function FoodCoupon() {
   }
 
   const dayNames = ['Day 1', 'Day 2', 'Day 3', 'Day 4', 'Day 5']
+
+  function formatDate(dateStr: string | null | undefined) {
+    if (!dateStr) return null
+    return new Date(dateStr + 'T00:00:00').toLocaleDateString('en-US', {
+      month: 'short',
+      day: 'numeric',
+    })
+  }
 
   function getCurrentMeal(): MealKey | null {
     const hour = new Date().getHours()
@@ -79,13 +100,11 @@ export function FoodCoupon() {
     return acc
   }, {})
 
-  const currentDay = Math.min(
-    Math.max(
-      Math.floor((new Date().getTime() - new Date('2026-08-13').getTime()) / (1000 * 60 * 60 * 24)) + 1,
-      1
-    ),
-    5
-  )
+  // "Today" is whichever configured day's date matches today's real
+  // calendar date — not a hardcoded retreat start date.
+  const todayStr = new Date().toISOString().split('T')[0]
+  const todaySetting = daySettings.find((s) => s.date === todayStr)
+  const currentDay = todaySetting?.day ?? null
   const currentMeal = getCurrentMeal()
 
   if (loading) {
@@ -114,7 +133,7 @@ export function FoodCoupon() {
       </GlassCard>
 
       {/* Current meal hero */}
-      {participant?.checked_in && currentMeal && (
+      {participant?.checked_in && currentDay && currentMeal && (
         <GlassCard dark className="border-l-4 border-brand-gold">
           <div className="flex items-center gap-3">
             <div className="p-3 rounded-full bg-brand-gold/20 shrink-0">
@@ -149,7 +168,7 @@ export function FoodCoupon() {
             <Ticket size={28} className="text-white/15 mx-auto mb-2" />
             <p className="text-white/40 text-sm">
               {participant?.checked_in
-                ? "No coupons yet — they'll show up here once the organisers generate them."
+                ? "No coupons yet — they'll show up here once today's meals are turned on."
                 : 'Check in at the desk to unlock your meal coupons.'}
             </p>
           </div>
@@ -160,6 +179,8 @@ export function FoodCoupon() {
               const usedCount = dayCoupons.filter((c: Coupon) => c.used).length
               const allUsed = usedCount === dayCoupons.length
               const isToday = dayNum === currentDay
+              const setting = daySettings.find((s) => s.day === dayNum)
+              const formattedDate = formatDate(setting?.date)
 
               return (
                 <div
@@ -171,6 +192,9 @@ export function FoodCoupon() {
                   <div className="flex items-center justify-between px-3.5 py-2.5 border-b border-white/5">
                     <h4 className="text-white font-medium text-sm flex items-center gap-2">
                       {dayNames[dayNum - 1]}
+                      {formattedDate && (
+                        <span className="text-white/30 font-normal">{formattedDate}</span>
+                      )}
                       {isToday && (
                         <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-brand-gold/20 text-brand-gold">
                           Today

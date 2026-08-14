@@ -3,14 +3,16 @@
 
 import { useState, useEffect } from 'react'
 import { supabase } from '@/lib/supabase'
+import { ensureCouponCoverage } from '@/lib/food-coupons'
 import { GlassCard } from '@/components/ui/GlassCard'
 import { GoldButton } from '@/components/ui/GoldButton'
 import toast from 'react-hot-toast'
-import { Coffee, Utensils, Moon, Settings, Save, Users, Ticket } from 'lucide-react'
+import { Coffee, Utensils, Moon, Settings, Save, Users } from 'lucide-react'
 
 interface CouponSetting {
   id?: string
   day: number
+  date: string | null
   total_meals: number
   breakfast_available: boolean
   lunch_available: boolean
@@ -37,7 +39,6 @@ export function CouponManager() {
   const [settings, setSettings] = useState<CouponSetting[]>([])
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
-  const [generating, setGenerating] = useState<number | null>(null)
   const [stats, setStats] = useState<Record<number, CouponStats>>({})
   const [checkedInCount, setCheckedInCount] = useState(0)
 
@@ -61,6 +62,7 @@ export function CouponManager() {
       } else {
         const defaultSettings = [1, 2, 3, 4, 5].map(day => ({
           day,
+          date: null,
           total_meals: 3,
           breakfast_available: true,
           lunch_available: true,
@@ -119,8 +121,6 @@ export function CouponManager() {
   function toggleMeal(day: number, meal: MealKey) {
     const key = `${meal}_available` as const
     const newSettings = settings.map(s => (s.day === day ? { ...s, [key]: !s[key] } : s))
-    // total_meals always reflects how many meal types are actually enabled,
-    // so it can never drift from what Generate will actually produce
     setSettings(
       newSettings.map(s => ({
         ...s,
@@ -128,6 +128,10 @@ export function CouponManager() {
           Number(s.breakfast_available) + Number(s.lunch_available) + Number(s.dinner_available),
       }))
     )
+  }
+
+  function updateDate(day: number, date: string) {
+    setSettings(settings.map(s => (s.day === day ? { ...s, date: date || null } : s)))
   }
 
   async function saveSettings() {
@@ -152,6 +156,7 @@ export function CouponManager() {
       for (const setting of settings) {
         const settingData = {
           day: setting.day,
+          date: setting.date,
           total_meals: setting.total_meals,
           breakfast_available: setting.breakfast_available,
           lunch_available: setting.lunch_available,
@@ -180,8 +185,14 @@ export function CouponManager() {
         }
       }
 
+      // Automatically create coupons for any meal that's now turned on,
+      // for every already-checked-in participant, for every day whose
+      // date has arrived. Safe to call every save — never duplicates.
+      await ensureCouponCoverage()
+
       toast.success('Settings saved')
       await fetchSettings()
+      await fetchAllStats()
     } catch (error: any) {
       console.error('Error saving settings:', error)
       toast.error(error.message || 'Failed to save coupon settings')
@@ -190,96 +201,15 @@ export function CouponManager() {
     }
   }
 
-  async function generateCoupons(day: number) {
-    setGenerating(day)
-    try {
-      const { data: participants, error: participantsError } = await supabase
-        .from('participants')
-        .select('id')
-        .eq('checked_in', true)
-
-      if (participantsError) throw participantsError
-
-      if (!participants || participants.length === 0) {
-        toast.error('No participants checked in yet')
-        setGenerating(null)
-        return
-      }
-
-      const daySetting = settings.find(s => s.day === day)
-      if (!daySetting) {
-        toast.error('No settings found for this day')
-        setGenerating(null)
-        return
-      }
-
-      const mealTypes: MealKey[] = []
-      if (daySetting.breakfast_available) mealTypes.push('breakfast')
-      if (daySetting.lunch_available) mealTypes.push('lunch')
-      if (daySetting.dinner_available) mealTypes.push('dinner')
-
-      if (mealTypes.length === 0) {
-        toast.error('Turn on at least one meal before generating')
-        setGenerating(null)
-        return
-      }
-
-      const { data: { user } } = await supabase.auth.getUser()
-      if (!user) {
-        toast.error('Not authenticated')
-        setGenerating(null)
-        return
-      }
-
-      const { error: deleteError } = await supabase
-        .from('food_coupons')
-        .delete()
-        .eq('day', day)
-
-      if (deleteError) {
-        console.error('Delete error:', deleteError)
-      }
-
-      const coupons = []
-      for (const participant of participants) {
-        for (const mealType of mealTypes) {
-          coupons.push({
-            participant_id: participant.id,
-            meal_type: mealType,
-            day: day,
-            used: false,
-            generated_by: user.id,
-            created_at: new Date().toISOString(),
-          })
-        }
-      }
-
-      const chunkSize = 500
-      let insertedCount = 0
-      for (let i = 0; i < coupons.length; i += chunkSize) {
-        const chunk = coupons.slice(i, i + chunkSize)
-        const { error: insertError } = await supabase
-          .from('food_coupons')
-          .insert(chunk)
-
-        if (insertError) {
-          console.error('Insert error:', insertError)
-          throw insertError
-        }
-        insertedCount += chunk.length
-      }
-
-      toast.success(`Generated ${insertedCount} coupons for Day ${day}`)
-      await fetchAllStats()
-    } catch (error: any) {
-      console.error('Error generating coupons:', error)
-      toast.error(error.message || 'Failed to generate coupons')
-    } finally {
-      setGenerating(null)
-    }
-  }
-
   const dayNames = ['Day 1', 'Day 2', 'Day 3', 'Day 4', 'Day 5']
+
+  function formatDate(dateStr: string | null) {
+    if (!dateStr) return null
+    return new Date(dateStr + 'T00:00:00').toLocaleDateString('en-US', {
+      month: 'short',
+      day: 'numeric',
+    })
+  }
 
   if (loading) {
     return (
@@ -310,6 +240,10 @@ export function CouponManager() {
             Save
           </GoldButton>
         </div>
+        <p className="text-white/30 text-xs mt-3">
+          Coupons are created automatically when a participant checks in, and whenever
+          you turn on a new meal for a day that's already started — no extra steps needed.
+        </p>
       </GlassCard>
 
       {/* Per-day cards */}
@@ -319,20 +253,23 @@ export function CouponManager() {
           const total = dayStats?.total ?? 0
           const used = dayStats?.used ?? 0
           const pct = total > 0 ? Math.round((used / total) * 100) : 0
-          const mealsOn = (['breakfast', 'lunch', 'dinner'] as MealKey[]).filter(
-            m => setting[`${m}_available` as const]
-          )
-          const isGenerating = generating === setting.day
-          const projectedCoupons = checkedInCount * mealsOn.length
+          const formattedDate = formatDate(setting.date)
 
           return (
             <div
               key={setting.day}
               className="rounded-2xl bg-white/5 border border-white/10 overflow-hidden"
             >
-              {/* Day header: name + progress */}
+              {/* Day header: name + date + progress */}
               <div className="flex items-center justify-between gap-3 px-4 py-3 border-b border-white/5">
-                <h4 className="text-white font-semibold">{dayNames[setting.day - 1]}</h4>
+                <div>
+                  <h4 className="text-white font-semibold">
+                    {dayNames[setting.day - 1]}
+                    {formattedDate && (
+                      <span className="text-white/40 font-normal text-sm ml-2">{formattedDate}</span>
+                    )}
+                  </h4>
+                </div>
                 {total > 0 ? (
                   <div className="flex items-center gap-2 min-w-0">
                     <span className="text-white/50 text-xs whitespace-nowrap">
@@ -346,8 +283,19 @@ export function CouponManager() {
                     </div>
                   </div>
                 ) : (
-                  <span className="text-white/30 text-xs">Not generated yet</span>
+                  <span className="text-white/30 text-xs">No coupons yet</span>
                 )}
+              </div>
+
+              {/* Date picker */}
+              <div className="px-4 pt-3">
+                <label className="text-white/50 text-xs mb-1 block">Date for this day</label>
+                <input
+                  type="date"
+                  className="input-gold"
+                  value={setting.date ?? ''}
+                  onChange={(e) => updateDate(setting.day, e.target.value)}
+                />
               </div>
 
               {/* Meal toggle chips */}
@@ -374,30 +322,10 @@ export function CouponManager() {
                 })}
               </div>
 
-              {/* Generate action */}
               <div className="p-4 pt-3">
-                <button
-                  onClick={() => generateCoupons(setting.day)}
-                  disabled={isGenerating || mealsOn.length === 0}
-                  className="w-full flex items-center justify-center gap-2 py-2.5 rounded-xl bg-brand-gold/15 text-brand-gold text-sm font-medium hover:bg-brand-gold/25 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
-                >
-                  {isGenerating ? (
-                    <>
-                      <span className="animate-spin rounded-full h-3.5 w-3.5 border-2 border-brand-gold border-t-transparent" />
-                      Generating…
-                    </>
-                  ) : (
-                    <>
-                      <Ticket size={14} />
-                      {mealsOn.length === 0
-                        ? 'Turn on a meal to generate'
-                        : `Generate for ${dayNames[setting.day - 1]} · ~${projectedCoupons} coupons`}
-                    </>
-                  )}
-                </button>
-                {total > 0 && (
-                  <p className="text-white/30 text-[11px] text-center mt-2">
-                    Regenerating replaces all {total} existing coupons for this day
+                {!setting.date && (
+                  <p className="text-white/25 text-[11px] text-center">
+                    Set a date above for coupons to start generating on check-in
                   </p>
                 )}
               </div>

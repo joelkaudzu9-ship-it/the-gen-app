@@ -5,6 +5,7 @@ import { useState, useEffect, useRef } from 'react'
 import { supabase } from '@/lib/supabase'
 import { GlassCard } from '@/components/ui/GlassCard'
 import { GoldButton } from '@/components/ui/GoldButton'
+import { ensureCouponCoverage } from '@/lib/food-coupons'
 import toast from 'react-hot-toast'
 import { Camera, X, CheckCircle, AlertTriangle, Clock, CameraOff } from 'lucide-react'
 import QrScanner from 'qr-scanner'
@@ -56,7 +57,6 @@ export function QRScanner() {
     }
 
     try {
-      // Clean up existing scanner
       if (scannerRef.current) {
         scannerRef.current.stop()
         scannerRef.current.destroy()
@@ -80,7 +80,7 @@ export function QRScanner() {
 
       scannerRef.current = scanner
       await scanner.start()
-      
+
       if (isMounted.current) {
         setScanning(true)
         setCameraReady(true)
@@ -117,7 +117,6 @@ export function QRScanner() {
   }
 
   const onScanSuccess = async (decodedText: string) => {
-    // Stop scanning immediately
     stopScanner()
     if (isMounted.current) {
       await processCheckIn(decodedText)
@@ -164,6 +163,10 @@ export function QRScanner() {
         .eq('id', participant.id)
 
       if (updateError) throw updateError
+
+      // Automatically create food coupons for every meal that's
+      // turned on, for every day that's already started
+      await ensureCouponCoverage([participant.id])
 
       await supabase.from('attendance').insert({
         participant_id: participant.id,

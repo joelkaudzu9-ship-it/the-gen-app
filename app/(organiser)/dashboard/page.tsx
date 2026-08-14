@@ -3,6 +3,7 @@
 
 import { useEffect, useState } from 'react'
 import { supabase } from '@/lib/supabase'
+import { ensureCouponCoverage } from '@/lib/food-coupons'
 import { GlassCard } from '@/components/ui/GlassCard'
 import {
   Users,
@@ -55,7 +56,16 @@ export default function DashboardPage() {
 
   useEffect(() => {
     fetchStats()
-    const interval = setInterval(fetchStats, 30000)
+    // Also keeps food coupon coverage in sync — this is what catches a new
+    // retreat day starting with no organiser action required. As long as
+    // this dashboard is open sometime after midnight, coverage backfills
+    // automatically within 30 seconds of the day beginning.
+    ensureCouponCoverage()
+
+    const interval = setInterval(() => {
+      fetchStats()
+      ensureCouponCoverage()
+    }, 30000)
     return () => clearInterval(interval)
   }, [])
 
@@ -119,6 +129,7 @@ export default function DashboardPage() {
   const handleRefresh = async () => {
     setRefreshing(true)
     await fetchStats()
+    await ensureCouponCoverage()
     setRefreshing(false)
     toast.success('Dashboard updated')
   }
@@ -236,7 +247,7 @@ export default function DashboardPage() {
         </GlassCard>
       )}
 
-      {/* Tabs - Updated to include Coupons */}
+      {/* Tabs */}
       <div className="grid grid-cols-5 gap-2">
         {tabs.map((tab) => {
           const isActive = activeTab === tab.id
