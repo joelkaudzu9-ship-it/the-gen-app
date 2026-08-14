@@ -4,71 +4,34 @@
 export const ONESIGNAL_APP_ID = process.env.NEXT_PUBLIC_ONESIGNAL_APP_ID || ''
 export const ONESIGNAL_API_KEY = process.env.ONESIGNAL_API_KEY || ''
 
-// Initialize OneSignal on the client side
-export function initOneSignal() {
-  if (typeof window === 'undefined') return
-
-  // @ts-ignore
-  if (window.OneSignal) return
-
-  const script = document.createElement('script')
-  script.src = 'https://cdn.onesignal.com/sdks/web/v16/OneSignalSDK.page.js'
-  script.async = true
-  document.head.appendChild(script)
-
-  script.onload = () => {
-    // @ts-ignore
-    window.OneSignal = window.OneSignal || []
-    // @ts-ignore
-    window.OneSignal.push(() => {
-      // @ts-ignore
-      window.OneSignal.init({
-        appId: ONESIGNAL_APP_ID,
-        allowLocalhostAsSecureOrigin: true,
-        autoRegister: true,
-        notifyButton: {
-          enable: true,
-        },
-      })
-    })
-  }
-}
-
-// Subscribe user to notifications
+// Subscribe user to notifications — tags the current OneSignal subscription
 export function subscribeToNotifications(email: string, userId: string) {
   if (typeof window === 'undefined') return
 
   // @ts-ignore
-  if (!window.OneSignal) return
-
+  window.OneSignalDeferred = window.OneSignalDeferred || []
   // @ts-ignore
-  window.OneSignal.push(() => {
-    // @ts-ignore
-    window.OneSignal.sendTag('user_id', userId)
-    // @ts-ignore
-    window.OneSignal.sendTag('user_email', email)
-    // @ts-ignore
-    window.OneSignal.getUserId((userId: string) => {
-      console.log('OneSignal User ID:', userId)
+  window.OneSignalDeferred.push(async function (OneSignal: any) {
+    await OneSignal.User.addTags({
+      user_id: userId,
+      user_email: email,
     })
   })
 }
 
-// Unsubscribe from notifications
+// Unsubscribe from push notifications
 export function unsubscribeFromNotifications() {
   if (typeof window === 'undefined') return
 
   // @ts-ignore
-  if (!window.OneSignal) return
-
+  window.OneSignalDeferred = window.OneSignalDeferred || []
   // @ts-ignore
-  window.OneSignal.push(() => {
-    // @ts-ignore
-    window.OneSignal.setSubscription(false)
+  window.OneSignalDeferred.push(async function (OneSignal: any) {
+    await OneSignal.User.PushSubscription.optOut()
   })
 }
 
-// Send notification
+// Send notification via our API route
 export async function sendPushNotification(title: string, message: string, data?: any) {
   try {
     const response = await fetch('/api/send-notification', {

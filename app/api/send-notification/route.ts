@@ -3,6 +3,7 @@ import { NextRequest, NextResponse } from 'next/server'
 
 const ONESIGNAL_APP_ID = process.env.NEXT_PUBLIC_ONESIGNAL_APP_ID || ''
 const ONESIGNAL_API_KEY = process.env.ONESIGNAL_API_KEY || ''
+const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || ''
 
 export async function POST(request: NextRequest) {
   try {
@@ -26,27 +27,27 @@ export async function POST(request: NextRequest) {
 
     const notification = {
       app_id: ONESIGNAL_APP_ID,
+      target_channel: 'push',
+      included_segments: ['Subscribed Users'],
       headings: { en: title },
       contents: { en: message },
       data: data || {},
-      target_channel: 'push',
-      included_segments: ['Subscribed Users'],
       web_buttons: [
         {
           id: 'open-app',
           text: 'Open App',
-          icon: 'https://your-app-url.com/icon.png',
-          url: 'https://your-app-url.com',
+          icon: `${SITE_URL}/icons/icon-192.png`,
+          url: SITE_URL,
         },
       ],
-      chrome_web_icon: 'https://your-app-url.com/icon-192.png',
+      chrome_web_icon: `${SITE_URL}/icons/icon-192.png`,
     }
 
-    const response = await fetch('https://onesignal.com/api/v1/notifications', {
+    const response = await fetch('https://api.onesignal.com/notifications', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'Authorization': `Basic ${ONESIGNAL_API_KEY}`,
+        'Authorization': `Key ${ONESIGNAL_API_KEY}`,
       },
       body: JSON.stringify(notification),
     })
