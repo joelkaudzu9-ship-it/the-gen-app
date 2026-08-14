@@ -87,7 +87,7 @@ export function CouponManager() {
         .eq('checked_in', true)
 
       if (!participants || participants.length === 0) {
-        toast.warning('No participants checked in')
+        toast.error('No participants checked in')
         return
       }
 
