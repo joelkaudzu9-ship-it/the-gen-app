@@ -1,13 +1,17 @@
 // next.config.js
 /** @type {import('next').NextConfig} */
+
+const isCapacitorBuild = process.env.BUILD_TARGET === 'capacitor'
+
 const nextConfig = {
-  output: 'export',  // This creates a static site
+  // Static export only for the Capacitor/Android/iOS build.
+  // Vercel builds normally as a full Next.js server app, so
+  // /api routes and middleware stay live in production.
+  ...(isCapacitorBuild ? { output: 'export' } : {}),
   images: {
-    unoptimized: true,  // Required for static export
+    unoptimized: true, // required for static export; harmless on Vercel too
   },
-  trailingSlash: true,  // Better for mobile routing
-  // Remove any server-side features
-  // No middleware, no server components
+  trailingSlash: true,
 }
 
 module.exports = nextConfig
