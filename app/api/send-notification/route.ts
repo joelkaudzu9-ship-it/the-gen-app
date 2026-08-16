@@ -14,6 +14,16 @@ function getFirebaseAdmin() {
   })
 }
 
+const corsHeaders = {
+  'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Methods': 'POST, OPTIONS',
+  'Access-Control-Allow-Headers': 'Content-Type',
+}
+
+export async function OPTIONS() {
+  return new NextResponse(null, { status: 204, headers: corsHeaders })
+}
+
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json()
@@ -22,7 +32,7 @@ export async function POST(request: NextRequest) {
     if (!title || !message) {
       return NextResponse.json(
         { error: 'Title and message are required' },
-        { status: 400 }
+        { status: 400, headers: corsHeaders }
       )
     }
 
@@ -37,7 +47,10 @@ export async function POST(request: NextRequest) {
     const tokens = (tokenRows || []).map((r) => r.token).filter(Boolean)
 
     if (tokens.length === 0) {
-      return NextResponse.json({ success: true, sent: 0, note: 'No registered devices' })
+      return NextResponse.json(
+        { success: true, sent: 0, note: 'No registered devices' },
+        { headers: corsHeaders }
+      )
     }
 
     const response = await getMessaging().sendEachForMulticast({
@@ -51,7 +64,6 @@ export async function POST(request: NextRequest) {
       ) : {},
     })
 
-    // Clean up tokens that are no longer valid (app uninstalled, etc.)
     const deadTokens: string[] = []
     response.responses.forEach((r, i) => {
       if (!r.success && (
@@ -66,16 +78,19 @@ export async function POST(request: NextRequest) {
       await supabaseAdmin.from('push_tokens').delete().in('token', deadTokens)
     }
 
-    return NextResponse.json({
-      success: true,
-      sent: response.successCount,
-      failed: response.failureCount,
-    })
+    return NextResponse.json(
+      {
+        success: true,
+        sent: response.successCount,
+        failed: response.failureCount,
+      },
+      { headers: corsHeaders }
+    )
   } catch (error) {
     console.error('Error sending notification:', error)
     return NextResponse.json(
       { error: 'Internal server error' },
-      { status: 500 }
+      { status: 500, headers: corsHeaders }
     )
   }
 }
