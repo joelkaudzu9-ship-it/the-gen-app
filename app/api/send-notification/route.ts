@@ -64,6 +64,7 @@ export async function POST(request: NextRequest) {
       ) : {},
     })
 
+    // Clean up tokens that are no longer valid (app uninstalled, etc.)
     const deadTokens: string[] = []
     response.responses.forEach((r, i) => {
       if (!r.success && (
