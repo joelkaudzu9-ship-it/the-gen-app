@@ -20,8 +20,11 @@ export async function registerPushToken(token: string, platform: 'android' | 'we
 }
 
 export async function sendPushNotification(title: string, message: string, data?: any) {
+  console.log('🔔 sendPushNotification called with:', title, message)
   try {
     const baseUrl = process.env.NEXT_PUBLIC_SITE_URL || ''
+    console.log('🔔 Fetching:', `${baseUrl}/api/send-notification`)
+
     const response = await fetch(`${baseUrl}/api/send-notification`, {
       method: 'POST',
       headers: {
@@ -34,13 +37,17 @@ export async function sendPushNotification(title: string, message: string, data?
       }),
     })
 
+    console.log('🔔 Response status:', response.status)
+
     if (!response.ok) {
       throw new Error('Failed to send notification')
     }
 
-    return await response.json()
+    const result = await response.json()
+    console.log('🔔 Response body:', result)
+    return result
   } catch (error) {
-    console.error('Error sending push notification:', error)
+    console.error('🔔 Error sending push notification:', error)
     return null
   }
 }
