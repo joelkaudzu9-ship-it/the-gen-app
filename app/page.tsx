@@ -30,8 +30,35 @@ export default function HomePage() {
     const interval = setInterval(() => {
       getLiveStatus().then(setLiveStatus)
     }, 60000)
-    return () => clearInterval(interval)
+
+    // Realtime: pick up new/changed/deleted announcements without a refresh
+    const channel = supabase
+      .channel('announcements-live')
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'announcements' },
+        () => {
+          refetchAnnouncements()
+        }
+      )
+      .subscribe()
+
+    return () => {
+      clearInterval(interval)
+      supabase.removeChannel(channel)
+    }
   }, [])
+
+  const refetchAnnouncements = async () => {
+    const { data, error } = await supabase
+      .from('announcements')
+      .select('*')
+      .order('priority', { ascending: false })
+      .order('published_at', { ascending: false })
+      .limit(3)
+
+    if (!error && data) setAnnouncements(data)
+  }
 
   const checkAuthAndFetch = async () => {
     try {
@@ -50,18 +77,12 @@ export default function HomePage() {
       const p = await getParticipant(user.id)
       if (p) setParticipant(p)
 
-      const [status, announcementsData] = await Promise.all([
+      const [status] = await Promise.all([
         getLiveStatus(),
-        supabase
-          .from('announcements')
-          .select('*')
-          .order('priority', { ascending: false })
-          .order('published_at', { ascending: false })
-          .limit(3)
+        refetchAnnouncements()
       ])
 
       setLiveStatus(status)
-      if (announcementsData.data) setAnnouncements(announcementsData.data)
     } catch (error) {
       console.error('Auth error:', error)
       toast.error('Failed to load data')
