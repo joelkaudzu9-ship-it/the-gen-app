@@ -12,3 +12,13 @@ firebase.initializeApp({
 });
 
 const messaging = firebase.messaging();
+
+// Optional but recommended: show a notification when a push arrives
+// while the site is in the background/not focused.
+messaging.onBackgroundMessage((payload) => {
+  const { title, body } = payload.notification || {};
+  self.registration.showNotification(title || 'THE GEN-APP', {
+    body: body || '',
+    icon: '/logo-gold.png',
+  });
+});
