@@ -3,6 +3,7 @@
 
 import { useState, useEffect } from 'react'
 import { supabase } from '@/lib/supabase'
+import { sendPushNotification } from '@/lib/push'
 import { GlassCard } from '@/components/ui/GlassCard'
 import { GoldButton } from '@/components/ui/GoldButton'
 import toast from 'react-hot-toast'
@@ -69,6 +70,18 @@ export function AnnouncementPublisher() {
 
         if (error) throw error
         toast.success('📢 Announcement published!')
+
+        // Fire the push notification — only on new announcements, not edits.
+        // Don't await/block the UI on this; log failures but don't fail the publish.
+        sendPushNotification(
+          priority ? `⭐ ${title.trim()}` : title.trim(),
+          message.trim()
+        ).then((result) => {
+          if (!result) {
+            console.error('Push notification failed to send')
+            toast.error('Announcement saved, but push notification failed to send')
+          }
+        })
       }
 
       setTitle('')
