@@ -13,7 +13,6 @@ interface CouponSetting {
   id?: string
   day: number
   date: string | null
-  total_meals: number
   breakfast_available: boolean
   lunch_available: boolean
   dinner_available: boolean
@@ -63,7 +62,6 @@ export function CouponManager() {
         const defaultSettings = [1, 2, 3, 4, 5].map(day => ({
           day,
           date: null,
-          total_meals: 3,
           breakfast_available: true,
           lunch_available: true,
           dinner_available: true,
@@ -120,14 +118,7 @@ export function CouponManager() {
 
   function toggleMeal(day: number, meal: MealKey) {
     const key = `${meal}_available` as const
-    const newSettings = settings.map(s => (s.day === day ? { ...s, [key]: !s[key] } : s))
-    setSettings(
-      newSettings.map(s => ({
-        ...s,
-        total_meals:
-          Number(s.breakfast_available) + Number(s.lunch_available) + Number(s.dinner_available),
-      }))
-    )
+    setSettings(settings.map(s => (s.day === day ? { ...s, [key]: !s[key] } : s)))
   }
 
   function updateDate(day: number, date: string) {
@@ -157,7 +148,6 @@ export function CouponManager() {
         const settingData = {
           day: setting.day,
           date: setting.date,
-          total_meals: setting.total_meals,
           breakfast_available: setting.breakfast_available,
           lunch_available: setting.lunch_available,
           dinner_available: setting.dinner_available,
