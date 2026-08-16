@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "347390244913",
+    "project_id": "the-gen-family",
+    "storage_bucket": "the-gen-family.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:347390244913:android:7288e6dea806b00399fd10",
+        "android_client_info": {
+          "package_name": "app.thegenapp.retreat"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBouxNf6qGoYqDfMtmYnzf2saLcouq780w"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

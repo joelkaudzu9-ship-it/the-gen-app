@@ -1,12 +1,26 @@
 // lib/onesignal.ts
 'use client'
 
+import { Capacitor } from '@capacitor/core'
+import OneSignal from 'onesignal-cordova-plugin'
+
 export const ONESIGNAL_APP_ID = process.env.NEXT_PUBLIC_ONESIGNAL_APP_ID || ''
 export const ONESIGNAL_API_KEY = process.env.ONESIGNAL_API_KEY || ''
 
-// Subscribe user to notifications — tags the current OneSignal subscription
 export function subscribeToNotifications(email: string, userId: string) {
   if (typeof window === 'undefined') return
+
+  if (Capacitor.isNativePlatform()) {
+    try {
+      OneSignal.User.addTags({
+        user_id: userId,
+        user_email: email,
+      })
+    } catch (error) {
+      console.error('Error tagging native OneSignal user:', error)
+    }
+    return
+  }
 
   // @ts-ignore
   window.OneSignalDeferred = window.OneSignalDeferred || []
@@ -19,9 +33,17 @@ export function subscribeToNotifications(email: string, userId: string) {
   })
 }
 
-// Unsubscribe from push notifications
 export function unsubscribeFromNotifications() {
   if (typeof window === 'undefined') return
+
+  if (Capacitor.isNativePlatform()) {
+    try {
+      OneSignal.User.pushSubscription.optOut()
+    } catch (error) {
+      console.error('Error opting out of native OneSignal push:', error)
+    }
+    return
+  }
 
   // @ts-ignore
   window.OneSignalDeferred = window.OneSignalDeferred || []
@@ -31,10 +53,10 @@ export function unsubscribeFromNotifications() {
   })
 }
 
-// Send notification via our API route
 export async function sendPushNotification(title: string, message: string, data?: any) {
   try {
-    const response = await fetch('/api/send-notification', {
+    const baseUrl = process.env.NEXT_PUBLIC_SITE_URL || ''
+    const response = await fetch(`${baseUrl}/api/send-notification`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',

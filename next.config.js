@@ -1,20 +1,13 @@
 // next.config.js
 /** @type {import('next').NextConfig} */
 const nextConfig = {
+  output: 'export',  // This creates a static site
   images: {
-    remotePatterns: [
-      {
-        protocol: 'https',
-        hostname: '**',
-      },
-    ],
-    deviceSizes: [640, 750, 828, 1080, 1200, 1920, 2048, 3840],
-    imageSizes: [16, 32, 48, 64, 96, 128, 256, 384],
+    unoptimized: true,  // Required for static export
   },
-  webpack: (config) => {
-    config.resolve.fallback = { fs: false, path: false }
-    return config
-  },
+  trailingSlash: true,  // Better for mobile routing
+  // Remove any server-side features
+  // No middleware, no server components
 }
 
 module.exports = nextConfig

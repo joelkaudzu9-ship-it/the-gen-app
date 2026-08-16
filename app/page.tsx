@@ -10,12 +10,10 @@ import { LoadingSkeleton } from '@/components/ui/LoadingSkeleton'
 import { AnimatedSection } from '@/components/ui/AnimatedSection'
 import { LiveStatusCard } from '@/components/home/LiveStatusCard'
 import { AnnouncementCard } from '@/components/home/AnnouncementCard'
+import { isAdmin } from '@/lib/admin'
 import { motion } from 'framer-motion'
 import { LogOut } from 'lucide-react'
 import toast from 'react-hot-toast'
-
-export const dynamic = 'force-dynamic'
-export const fetchCache = 'force-no-store'
 
 const PAGE_BG = 'linear-gradient(to bottom, #0A0A0A, #0A0A0A, #1A1A1A)'
 
@@ -44,6 +42,11 @@ export default function HomePage() {
         return
       }
 
+      if (isAdmin(user.email)) {
+        router.push('/dashboard')
+        return
+      }
+
       const p = await getParticipant(user.id)
       if (p) setParticipant(p)
 
@@ -60,6 +63,7 @@ export default function HomePage() {
       setLiveStatus(status)
       if (announcementsData.data) setAnnouncements(announcementsData.data)
     } catch (error) {
+      console.error('Auth error:', error)
       toast.error('Failed to load data')
     } finally {
       setLoading(false)
@@ -67,9 +71,13 @@ export default function HomePage() {
   }
 
   const handleSignOut = async () => {
-    await supabase.auth.signOut()
-    toast.success('Signed out')
-    router.push('/login')
+    try {
+      await supabase.auth.signOut()
+      toast.success('Signed out')
+      router.push('/login')
+    } catch (error) {
+      toast.error('Failed to sign out')
+    }
   }
 
   if (loading) return <LoadingSkeleton />
@@ -77,7 +85,6 @@ export default function HomePage() {
   return (
     <div className="min-h-screen pb-24" style={{ background: PAGE_BG }}>
       <div className="p-4 space-y-4 max-w-md mx-auto">
-        {/* ===== HERO SECTION — BACKGROUND IMAGE WITH TEXT OVERLAY ===== */}
         <AnimatedSection>
           <motion.div
             initial={{ scale: 0.98, opacity: 0 }}
@@ -171,12 +178,10 @@ export default function HomePage() {
           </motion.div>
         </AnimatedSection>
 
-        {/* Live Status */}
         <AnimatedSection delay={0.1}>
           <LiveStatusCard now={liveStatus.now} next={liveStatus.next} />
         </AnimatedSection>
 
-        {/* Announcements */}
         {announcements.length > 0 && (
           <AnimatedSection delay={0.2}>
             <div className="space-y-2">

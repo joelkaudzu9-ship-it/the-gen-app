@@ -4,7 +4,7 @@
 import { useState, useEffect } from 'react'
 import { supabase } from '@/lib/supabase'
 import { isAdmin } from '@/lib/admin'
-import { sendPushNotification } from '@/lib/onesignal'
+import { sendPushNotification } from '@/lib/push'
 import { GlassCard } from '@/components/ui/GlassCard'
 import { AnimatedSection } from '@/components/ui/AnimatedSection'
 import { FileText, Download, Book, Music, Video, Link2, Trash2, Edit2, ExternalLink, ArrowLeft } from 'lucide-react'

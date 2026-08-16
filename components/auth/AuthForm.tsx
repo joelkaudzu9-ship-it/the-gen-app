@@ -2,6 +2,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
+import { useRouter } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
 import { isAdmin } from '@/lib/admin'
 import { motion } from 'framer-motion'
@@ -14,6 +15,7 @@ interface AuthFormProps {
 }
 
 export default function AuthForm({ mode, onSuccess }: AuthFormProps) {
+  const router = useRouter()
   const [loading, setLoading] = useState(false)
   const [resetLoading, setResetLoading] = useState(false)
   const [resetCooldown, setResetCooldown] = useState(0)
@@ -47,7 +49,7 @@ export default function AuthForm({ mode, onSuccess }: AuthFormProps) {
             duration: 3000,
             style: { background: '#0A0A0A', color: '#D4AF37', border: '1px solid rgba(212, 175, 55, 0.3)' },
           })
-          setTimeout(() => { window.location.href = '/dashboard' }, 500)
+          setTimeout(() => { router.push('/dashboard') }, 500)
           return
         }
 
@@ -72,7 +74,7 @@ export default function AuthForm({ mode, onSuccess }: AuthFormProps) {
         }
 
         toast.success('Account created! Please check your email to confirm. 🎉')
-        setTimeout(() => { window.location.href = '/login' }, 3000)
+        setTimeout(() => { router.push('/login') }, 3000)
       }
     } catch (error: any) {
       toast.error(error.message)
@@ -114,7 +116,6 @@ export default function AuthForm({ mode, onSuccess }: AuthFormProps) {
         className="w-full max-w-md"
       >
         <div className="glass-card-dark">
-          {/* LOGO */}
           <div className="text-center mb-4">
             <div className="w-20 h-20 mx-auto" style={{ marginBottom: '1rem' }}>
               {!imageError ? (
@@ -135,7 +136,6 @@ export default function AuthForm({ mode, onSuccess }: AuthFormProps) {
             <p className="text-white/60 mt-2 text-sm">Generation Family Retreat 2026</p>
           </div>
 
-          {/* FORM */}
           <form onSubmit={handleSubmit} className="space-y-4">
             {mode === 'register' && (
               <motion.div
@@ -244,12 +244,11 @@ export default function AuthForm({ mode, onSuccess }: AuthFormProps) {
             </button>
           </form>
 
-          {/* TOGGLE */}
           <div className="mt-4 text-center">
             <p className="text-white/40 text-sm">
               {mode === 'login' ? "Don't have an account? " : "Already have an account? "}
               <button
-                onClick={() => window.location.href = mode === 'login' ? '/register' : '/login'}
+                onClick={() => router.push(mode === 'login' ? '/register' : '/login')}
                 className="text-brand-gold font-medium text-sm"
                 style={{ textDecoration: 'underline', background: 'none', border: 'none', cursor: 'pointer' }}
               >
