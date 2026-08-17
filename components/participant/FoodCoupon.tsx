@@ -6,6 +6,7 @@ import { supabase } from '@/lib/supabase'
 import { GlassCard } from '@/components/ui/GlassCard'
 import toast from 'react-hot-toast'
 import { CheckCircle2, Coffee, Utensils, Moon, Clock, Ticket, Circle } from 'lucide-react'
+import { getLocalDateString } from '@/lib/date-utils'
 
 interface Coupon {
   id: string
@@ -102,7 +103,7 @@ export function FoodCoupon() {
 
   // "Today" is whichever configured day's date matches today's real
   // calendar date — not a hardcoded retreat start date.
-  const todayStr = new Date().toISOString().split('T')[0]
+  const todayStr = getLocalDateString()
   const todaySetting = daySettings.find((s) => s.date === todayStr)
   const currentDay = todaySetting?.day ?? null
   const currentMeal = getCurrentMeal()

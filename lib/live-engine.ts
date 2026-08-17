@@ -1,11 +1,12 @@
 // lib/live-engine.ts
 import { supabase } from './supabase'
 import { Session, LiveStatus } from './types'
+import { getLocalDateString } from './date-utils'
 
 export async function getLiveStatus(): Promise<LiveStatus> {
   const now = new Date()
-  const today = now.toISOString().split('T')[0]
-  
+  const today = getLocalDateString(now)
+
   const { data: sessions, error } = await supabase
     .from('sessions')
     .select('*')

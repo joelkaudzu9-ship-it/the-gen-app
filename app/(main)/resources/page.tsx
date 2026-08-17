@@ -5,12 +5,13 @@ import { useState, useEffect } from 'react'
 import { supabase } from '@/lib/supabase'
 import { isAdmin } from '@/lib/admin'
 import { sendPushNotification } from '@/lib/push'
+import { getCurrentRetreatDay } from '@/lib/date-utils'
 import { GlassCard } from '@/components/ui/GlassCard'
 import { AnimatedSection } from '@/components/ui/AnimatedSection'
 import { FileText, Download, Book, Music, Video, Link2, Trash2, Edit2, ExternalLink, ArrowLeft } from 'lucide-react'
 import { GoldButton } from '@/components/ui/GoldButton'
-import toast from 'react-hot-toast'
 import Link from 'next/link'
+import toast from 'react-hot-toast'
 
 export const dynamic = 'force-dynamic'
 export const fetchCache = 'force-no-store'
@@ -37,8 +38,8 @@ export default function ResourcesPage() {
   const [admin, setAdmin] = useState(false)
   const [showUpload, setShowUpload] = useState(false)
   const [currentDay, setCurrentDay] = useState<number | null>(null)
+  const [selectedDay, setSelectedDay] = useState<number | null>(null)
 
-  // Upload form state
   const [uploadMode, setUploadMode] = useState<UploadMode>('file')
   const [uploadTitle, setUploadTitle] = useState('')
   const [uploadDescription, setUploadDescription] = useState('')
@@ -54,6 +55,18 @@ export default function ResourcesPage() {
     checkAdminStatus()
     fetchCurrentDay()
   }, [])
+
+  async function fetchCurrentDay() {
+    try {
+      const { data } = await supabase.from('coupon_settings').select('day, date')
+      const day = getCurrentRetreatDay(data || [])
+      setCurrentDay(day)
+      setSelectedDay(day ?? 1)
+    } catch (error) {
+      console.error('Error fetching current day:', error)
+      setSelectedDay(1)
+    }
+  }
 
   async function fetchResources() {
     try {
@@ -81,21 +94,6 @@ export default function ResourcesPage() {
     }
   }
 
-  async function fetchCurrentDay() {
-    try {
-      const todayStr = new Date().toISOString().split('T')[0]
-      const { data } = await supabase
-        .from('coupon_settings')
-        .select('day, date')
-        .eq('date', todayStr)
-        .maybeSingle()
-
-      setCurrentDay(data?.day ?? null)
-    } catch (error) {
-      console.error('Error fetching current day:', error)
-    }
-  }
-
   function resetForm() {
     setUploadMode('file')
     setUploadTitle('')
@@ -103,7 +101,7 @@ export default function ResourcesPage() {
     setUploadFile(null)
     setUploadLinkUrl('')
     setUploadLinkLabel('Video')
-    setUploadDay(1)
+    setUploadDay(currentDay ?? 1)
     setEditingResource(null)
   }
 
@@ -115,7 +113,6 @@ export default function ResourcesPage() {
         { type: 'resource' }
       )
     } catch (error) {
-      // Don't let a notification failure block the upload success flow
       console.error('Error sending resource notification:', error)
     }
   }
@@ -243,8 +240,6 @@ export default function ResourcesPage() {
         updated_at: new Date().toISOString(),
       }
 
-      // Editing a link resource lets you correct the URL/label without
-      // re-uploading; file-backed resources keep their existing file
       if (editingResource.resource_type === 'link') {
         updateData.file_url = uploadLinkUrl.trim()
         updateData.file_type = uploadLinkLabel
@@ -258,8 +253,6 @@ export default function ResourcesPage() {
       if (error) throw error
 
       toast.success('Resource updated successfully!')
-      // Deliberately no push notification here — edits to something
-      // participants may have already seen shouldn't re-notify everyone
       resetForm()
       setShowUpload(false)
       await fetchResources()
@@ -286,6 +279,8 @@ export default function ResourcesPage() {
   const days = [1, 2, 3, 4, 5]
   const dayNames = ['Day 1', 'Day 2', 'Day 3', 'Day 4', 'Day 5']
 
+  const visibleResources = resources.filter((r) => r.day === selectedDay)
+
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center" style={{ background: PAGE_BG }}>
@@ -297,7 +292,6 @@ export default function ResourcesPage() {
   return (
     <div className="min-h-screen p-4 pb-24" style={{ background: PAGE_BG }}>
       <div className="max-w-md mx-auto">
-        {/* Back to Dashboard - Admin Only */}
         {admin && (
           <Link
             href="/dashboard"
@@ -314,9 +308,7 @@ export default function ResourcesPage() {
           {admin && (
             <button
               onClick={() => {
-                if (showUpload) {
-                  resetForm()
-                }
+                if (showUpload) resetForm()
                 setShowUpload(!showUpload)
               }}
               className="btn-gold text-sm px-4 py-2"
@@ -326,7 +318,6 @@ export default function ResourcesPage() {
           )}
         </div>
 
-        {/* Today's Materials Card */}
         <AnimatedSection delay={0.1}>
           <GlassCard dark className="mb-4">
             <div className="flex items-center gap-3">
@@ -343,14 +334,40 @@ export default function ResourcesPage() {
           </GlassCard>
         </AnimatedSection>
 
-        {/* Upload/Edit Form */}
+        {/* Day tabs */}
+        <div className="flex gap-2 overflow-x-auto mb-4" style={{ paddingBottom: '4px' }}>
+          {days.map((day) => {
+            const isActive = selectedDay === day
+            const isToday = currentDay === day
+            return (
+              <button
+                key={day}
+                onClick={() => setSelectedDay(day)}
+                className="rounded-xl font-medium whitespace-nowrap"
+                style={{
+                  padding: '8px 16px',
+                  transition: 'all 0.3s ease',
+                  background: isActive ? 'linear-gradient(135deg, #D4AF37 0%, #B8960F 50%, #8B7500 100%)' : 'rgba(255,255,255,0.05)',
+                  color: isActive ? '#0A0A0A' : 'rgba(255,255,255,0.6)',
+                  border: isActive ? 'none' : '1px solid rgba(255,255,255,0.1)',
+                  fontSize: '14px',
+                }}
+              >
+                {dayNames[day - 1]}
+                {isToday && !isActive && (
+                  <span style={{ marginLeft: '4px', color: '#D4AF37', fontSize: '10px' }}>●</span>
+                )}
+              </button>
+            )
+          })}
+        </div>
+
         {showUpload && (
           <GlassCard dark className="mb-4">
             <h3 className="text-white font-semibold mb-3">
               {editingResource ? 'Edit Resource' : 'Add New Resource'}
             </h3>
             <form onSubmit={editingResource ? handleUpdate : handleUpload} className="space-y-3">
-
               {!editingResource && (
                 <div className="flex gap-2">
                   <button
@@ -379,9 +396,7 @@ export default function ResourcesPage() {
               )}
 
               <div>
-                <label className="text-white/80 text-sm font-medium mb-1 block">
-                  Title
-                </label>
+                <label className="text-white/80 text-sm font-medium mb-1 block">Title</label>
                 <input
                   type="text"
                   value={uploadTitle}
@@ -393,9 +408,7 @@ export default function ResourcesPage() {
               </div>
 
               <div>
-                <label className="text-white/80 text-sm font-medium mb-1 block">
-                  Description
-                </label>
+                <label className="text-white/80 text-sm font-medium mb-1 block">Description</label>
                 <textarea
                   value={uploadDescription}
                   onChange={(e) => setUploadDescription(e.target.value)}
@@ -407,9 +420,7 @@ export default function ResourcesPage() {
               </div>
 
               <div>
-                <label className="text-white/80 text-sm font-medium mb-1 block">
-                  Day
-                </label>
+                <label className="text-white/80 text-sm font-medium mb-1 block">Day</label>
                 <select
                   value={uploadDay}
                   onChange={(e) => setUploadDay(Number(e.target.value))}
@@ -423,27 +434,21 @@ export default function ResourcesPage() {
 
               {uploadMode === 'file' && !editingResource && (
                 <div>
-                  <label className="text-white/80 text-sm font-medium mb-1 block">
-                    File
-                  </label>
+                  <label className="text-white/80 text-sm font-medium mb-1 block">File</label>
                   <input
                     type="file"
                     onChange={(e) => setUploadFile(e.target.files?.[0] || null)}
                     className="w-full text-white text-sm"
                     required
                   />
-                  <p className="text-white/30 text-xs mt-1">
-                    PDF, doc, image, audio, or video file
-                  </p>
+                  <p className="text-white/30 text-xs mt-1">PDF, doc, image, audio, or video file</p>
                 </div>
               )}
 
               {uploadMode === 'link' && (
                 <>
                   <div>
-                    <label className="text-white/80 text-sm font-medium mb-1 block">
-                      Link type
-                    </label>
+                    <label className="text-white/80 text-sm font-medium mb-1 block">Link type</label>
                     <select
                       value={uploadLinkLabel}
                       onChange={(e) => setUploadLinkLabel(e.target.value as 'Video' | 'Audio' | 'Link')}
@@ -455,9 +460,7 @@ export default function ResourcesPage() {
                     </select>
                   </div>
                   <div>
-                    <label className="text-white/80 text-sm font-medium mb-1 block">
-                      URL
-                    </label>
+                    <label className="text-white/80 text-sm font-medium mb-1 block">URL</label>
                     <input
                       type="url"
                       value={uploadLinkUrl}
@@ -477,14 +480,15 @@ export default function ResourcesPage() {
           </GlassCard>
         )}
 
-        {/* Resources List */}
         <div className="space-y-3">
-          {resources.length === 0 ? (
+          {visibleResources.length === 0 ? (
             <GlassCard dark>
-              <p className="text-white/30 text-sm text-center py-4">No resources available</p>
+              <p className="text-white/30 text-sm text-center py-4">
+                No resources for {dayNames[(selectedDay ?? 1) - 1]} yet
+              </p>
             </GlassCard>
           ) : (
-            resources.map((resource, index) => {
+            visibleResources.map((resource, index) => {
               const Icon = getResourceIcon(resource)
               const isLink = resource.resource_type === 'link'
 
@@ -503,21 +507,15 @@ export default function ResourcesPage() {
                             {resource.file_type}
                           </span>
                           {resource.file_size && (
-                            <span className="text-xs text-white/30">
-                              {resource.file_size}
-                            </span>
+                            <span className="text-xs text-white/30">{resource.file_size}</span>
                           )}
-                          <span className="text-xs text-brand-gold/50">
-                            Day {resource.day}
-                          </span>
                         </div>
                       </div>
                       <div className="flex items-center gap-1">
                         <a
                           href={resource.file_url}
-                          {...(isLink
-                            ? { target: '_blank', rel: 'noopener noreferrer' }
-                            : { download: true, target: '_blank', rel: 'noopener noreferrer' })}
+                          target="_blank"
+                          rel="noopener noreferrer"
                           className="p-2 rounded-xl hover:bg-brand-gold/10 transition-colors"
                         >
                           {isLink ? (
@@ -550,12 +548,6 @@ export default function ResourcesPage() {
             })
           )}
         </div>
-
-        <AnimatedSection delay={0.4}>
-          <p className="text-white/20 text-xs text-center mt-4">
-            More resources will be added during the retreat
-          </p>
-        </AnimatedSection>
       </div>
     </div>
   )

@@ -1,234 +1,556 @@
-// app/page.tsx
+// app/(main)/resources/page.tsx
 'use client'
 
-import { useEffect, useState } from 'react'
-import { useRouter } from 'next/navigation'
-import { supabase, getParticipant } from '@/lib/supabase'
-import { getLiveStatus } from '@/lib/live-engine'
-import { Announcement, LiveStatus, Participant } from '@/lib/types'
-import { LoadingSkeleton } from '@/components/ui/LoadingSkeleton'
-import { AnimatedSection } from '@/components/ui/AnimatedSection'
-import { LiveStatusCard } from '@/components/home/LiveStatusCard'
-import { AnnouncementCard } from '@/components/home/AnnouncementCard'
+import { useState, useEffect } from 'react'
+import { supabase } from '@/lib/supabase'
 import { isAdmin } from '@/lib/admin'
-import { motion } from 'framer-motion'
-import { LogOut } from 'lucide-react'
+import { sendPushNotification } from '@/lib/push'
+import { getCurrentRetreatDay } from '@/lib/date-utils'
+import { GlassCard } from '@/components/ui/GlassCard'
+import { AnimatedSection } from '@/components/ui/AnimatedSection'
+import { FileText, Download, Book, Music, Video, Link2, Trash2, Edit2, ExternalLink, ArrowLeft } from 'lucide-react'
+import { GoldButton } from '@/components/ui/GoldButton'
+import Link from 'next/link'
 import toast from 'react-hot-toast'
 
-const PAGE_BG = 'linear-gradient(to bottom, #0A0A0A, #0A0A0A, #1A1A1A)'
+export const dynamic = 'force-dynamic'
+export const fetchCache = 'force-no-store'
 
-export default function HomePage() {
-  const router = useRouter()
-  const [participant, setParticipant] = useState<Participant | null>(null)
-  const [liveStatus, setLiveStatus] = useState<LiveStatus>({ now: null, next: null, later: [] })
-  const [announcements, setAnnouncements] = useState<Announcement[]>([])
+const PAGE_BG = 'linear-gradient(to bottom, #0A0A0A, #1A1A1A, #0A0A0A)'
+
+interface Resource {
+  id: string
+  title: string
+  description: string
+  file_url: string
+  file_type: string
+  file_size: string | null
+  resource_type: 'file' | 'link'
+  day: number
+  created_at: string
+}
+
+type UploadMode = 'file' | 'link'
+
+export default function ResourcesPage() {
+  const [resources, setResources] = useState<Resource[]>([])
   const [loading, setLoading] = useState(true)
-  const [heroImageError, setHeroImageError] = useState(false)
+  const [admin, setAdmin] = useState(false)
+  const [showUpload, setShowUpload] = useState(false)
+  const [currentDay, setCurrentDay] = useState<number | null>(null)
+  const [selectedDay, setSelectedDay] = useState<number | null>(null)
+
+  const [uploadMode, setUploadMode] = useState<UploadMode>('file')
+  const [uploadTitle, setUploadTitle] = useState('')
+  const [uploadDescription, setUploadDescription] = useState('')
+  const [uploadFile, setUploadFile] = useState<File | null>(null)
+  const [uploadLinkUrl, setUploadLinkUrl] = useState('')
+  const [uploadLinkLabel, setUploadLinkLabel] = useState<'Video' | 'Audio' | 'Link'>('Video')
+  const [uploadDay, setUploadDay] = useState(1)
+  const [uploading, setUploading] = useState(false)
+  const [editingResource, setEditingResource] = useState<Resource | null>(null)
 
   useEffect(() => {
-    checkAuthAndFetch()
-    const interval = setInterval(() => {
-      getLiveStatus().then(setLiveStatus)
-    }, 60000)
-
-    // Realtime: pick up new/changed/deleted announcements without a refresh
-    const channel = supabase
-      .channel('announcements-live')
-      .on(
-        'postgres_changes',
-        { event: '*', schema: 'public', table: 'announcements' },
-        () => {
-          refetchAnnouncements()
-        }
-      )
-      .subscribe()
-
-    return () => {
-      clearInterval(interval)
-      supabase.removeChannel(channel)
-    }
+    fetchResources()
+    checkAdminStatus()
+    fetchCurrentDay()
   }, [])
 
-  const refetchAnnouncements = async () => {
-    const { data, error } = await supabase
-      .from('announcements')
-      .select('*')
-      .order('priority', { ascending: false })
-      .order('published_at', { ascending: false })
-      .limit(3)
-
-    if (!error && data) setAnnouncements(data)
+  async function fetchCurrentDay() {
+    try {
+      const { data } = await supabase.from('coupon_settings').select('day, date')
+      const day = getCurrentRetreatDay(data || [])
+      setCurrentDay(day)
+      setSelectedDay(day ?? 1)
+    } catch (error) {
+      console.error('Error fetching current day:', error)
+      setSelectedDay(1)
+    }
   }
 
-  const checkAuthAndFetch = async () => {
+  async function fetchResources() {
     try {
-      const { data: { user } } = await supabase.auth.getUser()
+      const { data, error } = await supabase
+        .from('resources')
+        .select('*')
+        .order('created_at', { ascending: false })
 
-      if (!user) {
-        router.push('/login')
-        return
-      }
-
-      if (isAdmin(user.email)) {
-        router.push('/dashboard')
-        return
-      }
-
-      const p = await getParticipant(user.id)
-      if (p) setParticipant(p)
-
-      const [status] = await Promise.all([
-        getLiveStatus(),
-        refetchAnnouncements()
-      ])
-
-      setLiveStatus(status)
+      if (error) throw error
+      if (data) setResources(data)
     } catch (error) {
-      console.error('Auth error:', error)
-      toast.error('Failed to load data')
+      console.error('Error fetching resources:', error)
+      toast.error('Failed to load resources')
     } finally {
       setLoading(false)
     }
   }
 
-  const handleSignOut = async () => {
+  async function checkAdminStatus() {
     try {
-      await supabase.auth.signOut()
-      toast.success('Signed out')
-      router.push('/login')
+      const { data: { user } } = await supabase.auth.getUser()
+      setAdmin(isAdmin(user?.email))
     } catch (error) {
-      toast.error('Failed to sign out')
+      console.error('Error checking admin status:', error)
     }
   }
 
-  if (loading) return <LoadingSkeleton />
+  function resetForm() {
+    setUploadMode('file')
+    setUploadTitle('')
+    setUploadDescription('')
+    setUploadFile(null)
+    setUploadLinkUrl('')
+    setUploadLinkLabel('Video')
+    setUploadDay(currentDay ?? 1)
+    setEditingResource(null)
+  }
+
+  async function notifyNewResource(title: string, day: number) {
+    try {
+      await sendPushNotification(
+        '📚 New resource available',
+        `${title} — Day ${day}`,
+        { type: 'resource' }
+      )
+    } catch (error) {
+      console.error('Error sending resource notification:', error)
+    }
+  }
+
+  async function handleUpload(e: React.FormEvent) {
+    e.preventDefault()
+
+    if (!uploadTitle || !uploadDescription) {
+      toast.error('Please fill in the title and description')
+      return
+    }
+    if (uploadMode === 'file' && !uploadFile) {
+      toast.error('Please select a file')
+      return
+    }
+    if (uploadMode === 'link' && !uploadLinkUrl.trim()) {
+      toast.error('Please paste a link')
+      return
+    }
+
+    setUploading(true)
+    try {
+      const { data: { user } } = await supabase.auth.getUser()
+      if (!user) throw new Error('Not authenticated')
+
+      let fileUrl: string
+      let fileType: string
+      let fileSize: string | null
+
+      if (uploadMode === 'file' && uploadFile) {
+        const fileExt = uploadFile.name.split('.').pop()
+        const fileName = `${Date.now()}.${fileExt}`
+        const filePath = `resources/${fileName}`
+
+        const { error: uploadError } = await supabase.storage
+          .from('resources')
+          .upload(filePath, uploadFile)
+
+        if (uploadError) throw uploadError
+
+        const { data: urlData } = supabase.storage
+          .from('resources')
+          .getPublicUrl(filePath)
+
+        fileUrl = urlData.publicUrl
+        fileType = fileExt?.toUpperCase() || 'FILE'
+        fileSize = `${(uploadFile.size / 1024).toFixed(0)} KB`
+      } else {
+        fileUrl = uploadLinkUrl.trim()
+        fileType = uploadLinkLabel
+        fileSize = null
+      }
+
+      const { error: dbError } = await supabase
+        .from('resources')
+        .insert({
+          title: uploadTitle,
+          description: uploadDescription,
+          file_url: fileUrl,
+          file_type: fileType,
+          file_size: fileSize,
+          resource_type: uploadMode,
+          day: uploadDay,
+          uploaded_by: user.id,
+        })
+
+      if (dbError) throw dbError
+
+      toast.success('Resource uploaded successfully!')
+      await notifyNewResource(uploadTitle, uploadDay)
+
+      resetForm()
+      setShowUpload(false)
+      await fetchResources()
+    } catch (error) {
+      console.error('Upload error:', error)
+      toast.error('Failed to upload resource')
+    } finally {
+      setUploading(false)
+    }
+  }
+
+  async function handleDelete(resourceId: string) {
+    if (!confirm('Are you sure you want to delete this resource?')) return
+
+    try {
+      const { error } = await supabase
+        .from('resources')
+        .delete()
+        .eq('id', resourceId)
+
+      if (error) throw error
+
+      toast.success('Resource deleted')
+      await fetchResources()
+    } catch (error) {
+      console.error('Delete error:', error)
+      toast.error('Failed to delete resource')
+    }
+  }
+
+  function handleEdit(resource: Resource) {
+    setEditingResource(resource)
+    setUploadMode(resource.resource_type)
+    setUploadTitle(resource.title)
+    setUploadDescription(resource.description)
+    setUploadDay(resource.day)
+    if (resource.resource_type === 'link') {
+      setUploadLinkUrl(resource.file_url)
+      setUploadLinkLabel((resource.file_type as 'Video' | 'Audio' | 'Link') || 'Link')
+    }
+    setShowUpload(true)
+  }
+
+  async function handleUpdate(e: React.FormEvent) {
+    e.preventDefault()
+    if (!editingResource) return
+
+    setUploading(true)
+    try {
+      const updateData: Record<string, any> = {
+        title: uploadTitle,
+        description: uploadDescription,
+        day: uploadDay,
+        updated_at: new Date().toISOString(),
+      }
+
+      if (editingResource.resource_type === 'link') {
+        updateData.file_url = uploadLinkUrl.trim()
+        updateData.file_type = uploadLinkLabel
+      }
+
+      const { error } = await supabase
+        .from('resources')
+        .update(updateData)
+        .eq('id', editingResource.id)
+
+      if (error) throw error
+
+      toast.success('Resource updated successfully!')
+      resetForm()
+      setShowUpload(false)
+      await fetchResources()
+    } catch (error) {
+      console.error('Update error:', error)
+      toast.error('Failed to update resource')
+    } finally {
+      setUploading(false)
+    }
+  }
+
+  function getResourceIcon(resource: Resource) {
+    const type = resource.file_type?.toUpperCase() || ''
+    if (resource.resource_type === 'link') {
+      if (type === 'VIDEO') return Video
+      if (type === 'AUDIO') return Music
+      return Link2
+    }
+    if (['MP3', 'WAV', 'M4A', 'AAC'].includes(type)) return Music
+    if (['MP4', 'MOV', 'WEBM', 'AVI'].includes(type)) return Video
+    return FileText
+  }
+
+  const days = [1, 2, 3, 4, 5]
+  const dayNames = ['Day 1', 'Day 2', 'Day 3', 'Day 4', 'Day 5']
+
+  const visibleResources = resources.filter((r) => r.day === selectedDay)
+
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center" style={{ background: PAGE_BG }}>
+        <div className="animate-spin rounded-full h-12 w-12 border-4 border-brand-gold border-t-transparent" />
+      </div>
+    )
+  }
 
   return (
-    <div className="min-h-screen pb-24" style={{ background: PAGE_BG }}>
-      <div className="p-4 space-y-4 max-w-md mx-auto">
-        <AnimatedSection>
-          <motion.div
-            initial={{ scale: 0.98, opacity: 0 }}
-            animate={{ scale: 1, opacity: 1 }}
-            transition={{ duration: 0.6 }}
-            style={{
-              position: 'relative',
-              width: '100%',
-              minHeight: '260px',
-              borderRadius: '24px',
-              overflow: 'hidden',
-              marginBottom: '1.5rem',
-              boxShadow: '0 4px 25px rgba(212, 175, 55, 0.15)',
-            }}
+    <div className="min-h-screen p-4 pb-24" style={{ background: PAGE_BG }}>
+      <div className="max-w-md mx-auto">
+        {admin && (
+          <Link
+            href="/dashboard"
+            className="inline-flex items-center gap-1 text-sm mb-3"
+            style={{ color: 'rgba(212, 175, 55, 0.7)' }}
           >
-            {!heroImageError ? (
-              <img
-                src="/hero-image.png"
-                alt=""
-                onError={() => setHeroImageError(true)}
-                style={{
-                  position: 'absolute',
-                  inset: 0,
-                  width: '100%',
-                  height: '100%',
-                  objectFit: 'cover',
-                  objectPosition: 'center',
-                }}
-              />
-            ) : (
-              <div
-                style={{
-                  position: 'absolute',
-                  inset: 0,
-                  background: 'linear-gradient(135deg, #D4AF37 0%, #8B7500 100%)',
-                }}
-              />
-            )}
-
-            <div
-              style={{
-                position: 'absolute',
-                inset: 0,
-                background: 'linear-gradient(to bottom, rgba(10,10,10,0.35) 0%, rgba(10,10,10,0.55) 50%, rgba(10,10,10,0.9) 100%)',
-              }}
-            />
-
-            <div
-              style={{
-                position: 'relative',
-                zIndex: 1,
-                height: '100%',
-                display: 'flex',
-                flexDirection: 'column',
-                alignItems: 'center',
-                justifyContent: 'center',
-                textAlign: 'center',
-                padding: '2rem 1.5rem',
-              }}
-            >
-              <h1
-                className="text-2xl font-bold text-white"
-                style={{ textShadow: '0 2px 8px rgba(0,0,0,0.5)' }}
-              >
-                Good {new Date().getHours() < 12 ? 'Morning' : 'Afternoon'}, {participant?.full_name?.split(' ')[0] || 'Guest'} 👋
-              </h1>
-              <div className="flex items-center justify-center gap-2 mt-1">
-                <span
-                  className="rounded-full bg-brand-gold animate-pulse"
-                  style={{ display: 'inline-block', width: '8px', height: '8px' }}
-                />
-                <p className="text-sm" style={{ color: '#D4AF37', textShadow: '0 1px 4px rgba(0,0,0,0.6)' }}>
-                  DAY {getCurrentDay()} • RETREAT 2026
-                </p>
-              </div>
-
-              <button
-                onClick={handleSignOut}
-                className="text-sm mt-2 flex items-center gap-1 mx-auto"
-                style={{
-                  background: 'transparent',
-                  border: 'none',
-                  cursor: 'pointer',
-                  color: 'rgba(255,255,255,0.7)',
-                  textShadow: '0 1px 4px rgba(0,0,0,0.6)',
-                }}
-              >
-                <LogOut size={14} /> Sign Out
-              </button>
-            </div>
-          </motion.div>
-        </AnimatedSection>
-
-        <AnimatedSection delay={0.1}>
-          <LiveStatusCard now={liveStatus.now} next={liveStatus.next} />
-        </AnimatedSection>
-
-        {announcements.length > 0 && (
-          <AnimatedSection delay={0.2}>
-            <div className="space-y-2">
-              <div className="flex items-center gap-2">
-                <div className="h-px flex-1 bg-brand-gold/10" />
-                <h3 className="text-xs font-semibold uppercase tracking-wider flex items-center gap-1" style={{ color: 'rgba(212,175,55,0.6)' }}>
-                  <span>📢</span> Latest Announcements
-                </h3>
-                <div className="h-px flex-1 bg-brand-gold/10" />
-              </div>
-              {announcements.map((announcement, index) => (
-                <AnnouncementCard key={announcement.id} announcement={announcement} index={index} />
-              ))}
-            </div>
-          </AnimatedSection>
+            <ArrowLeft size={14} />
+            Back to Dashboard
+          </Link>
         )}
 
-        <div style={{ height: '16px' }} />
+        <div className="flex items-center justify-between mb-4">
+          <h1 className="text-2xl font-bold text-white">Resources</h1>
+          {admin && (
+            <button
+              onClick={() => {
+                if (showUpload) resetForm()
+                setShowUpload(!showUpload)
+              }}
+              className="btn-gold text-sm px-4 py-2"
+            >
+              {showUpload ? 'Cancel' : '+ Add Resource'}
+            </button>
+          )}
+        </div>
+
+        <AnimatedSection delay={0.1}>
+          <GlassCard dark className="mb-4">
+            <div className="flex items-center gap-3">
+              <div className="rounded-full bg-brand-gold/20 p-3">
+                <Book size={24} className="text-brand-gold" />
+              </div>
+              <div>
+                <h2 className="text-white font-semibold">Today's Materials</h2>
+                <p className="text-white/40 text-sm">
+                  {currentDay ? `Day ${currentDay} resources` : 'Retreat has not started yet'}
+                </p>
+              </div>
+            </div>
+          </GlassCard>
+        </AnimatedSection>
+
+        {/* Day tabs */}
+        <div className="flex gap-2 overflow-x-auto mb-4" style={{ paddingBottom: '4px' }}>
+          {days.map((day) => {
+            const isActive = selectedDay === day
+            const isToday = currentDay === day
+            return (
+              <button
+                key={day}
+                onClick={() => setSelectedDay(day)}
+                className="rounded-xl font-medium whitespace-nowrap"
+                style={{
+                  padding: '8px 16px',
+                  transition: 'all 0.3s ease',
+                  background: isActive ? 'linear-gradient(135deg, #D4AF37 0%, #B8960F 50%, #8B7500 100%)' : 'rgba(255,255,255,0.05)',
+                  color: isActive ? '#0A0A0A' : 'rgba(255,255,255,0.6)',
+                  border: isActive ? 'none' : '1px solid rgba(255,255,255,0.1)',
+                  fontSize: '14px',
+                }}
+              >
+                {dayNames[day - 1]}
+                {isToday && !isActive && (
+                  <span style={{ marginLeft: '4px', color: '#D4AF37', fontSize: '10px' }}>●</span>
+                )}
+              </button>
+            )
+          })}
+        </div>
+
+        {showUpload && (
+          <GlassCard dark className="mb-4">
+            <h3 className="text-white font-semibold mb-3">
+              {editingResource ? 'Edit Resource' : 'Add New Resource'}
+            </h3>
+            <form onSubmit={editingResource ? handleUpdate : handleUpload} className="space-y-3">
+
+              {!editingResource && (
+                <div className="flex gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setUploadMode('file')}
+                    className={`flex-1 py-2 rounded-xl text-sm font-medium border ${
+                      uploadMode === 'file'
+                        ? 'bg-brand-gold/15 border-brand-gold/60 text-brand-gold'
+                        : 'bg-white/5 border-white/10 text-white/40'
+                    }`}
+                  >
+                    Upload a file
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setUploadMode('link')}
+                    className={`flex-1 py-2 rounded-xl text-sm font-medium border ${
+                      uploadMode === 'link'
+                        ? 'bg-brand-gold/15 border-brand-gold/60 text-brand-gold'
+                        : 'bg-white/5 border-white/10 text-white/40'
+                    }`}
+                  >
+                    Add a link
+                  </button>
+                </div>
+              )}
+
+              <div>
+                <label className="text-white/80 text-sm font-medium mb-1 block">Title</label>
+                <input
+                  type="text"
+                  value={uploadTitle}
+                  onChange={(e) => setUploadTitle(e.target.value)}
+                  className="input-gold"
+                  placeholder="e.g. Sermon: The Road to Emmaus"
+                  required
+                />
+              </div>
+
+              <div>
+                <label className="text-white/80 text-sm font-medium mb-1 block">Description</label>
+                <textarea
+                  value={uploadDescription}
+                  onChange={(e) => setUploadDescription(e.target.value)}
+                  className="input-gold"
+                  placeholder="Short description"
+                  rows={2}
+                  required
+                />
+              </div>
+
+              <div>
+                <label className="text-white/80 text-sm font-medium mb-1 block">Day</label>
+                <select
+                  value={uploadDay}
+                  onChange={(e) => setUploadDay(Number(e.target.value))}
+                  className="input-gold"
+                >
+                  {days.map((day) => (
+                    <option key={day} value={day}>{dayNames[day - 1]}</option>
+                  ))}
+                </select>
+              </div>
+
+              {uploadMode === 'file' && !editingResource && (
+                <div>
+                  <label className="text-white/80 text-sm font-medium mb-1 block">File</label>
+                  <input
+                    type="file"
+                    onChange={(e) => setUploadFile(e.target.files?.[0] || null)}
+                    className="w-full text-white text-sm"
+                    required
+                  />
+                  <p className="text-white/30 text-xs mt-1">PDF, doc, image, audio, or video file</p>
+                </div>
+              )}
+
+              {uploadMode === 'link' && (
+                <>
+                  <div>
+                    <label className="text-white/80 text-sm font-medium mb-1 block">Link type</label>
+                    <select
+                      value={uploadLinkLabel}
+                      onChange={(e) => setUploadLinkLabel(e.target.value as 'Video' | 'Audio' | 'Link')}
+                      className="input-gold"
+                    >
+                      <option value="Video">Video (e.g. YouTube)</option>
+                      <option value="Audio">Audio (e.g. sermon recording)</option>
+                      <option value="Link">General link</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label className="text-white/80 text-sm font-medium mb-1 block">URL</label>
+                    <input
+                      type="url"
+                      value={uploadLinkUrl}
+                      onChange={(e) => setUploadLinkUrl(e.target.value)}
+                      className="input-gold"
+                      placeholder="https://..."
+                      required
+                    />
+                  </div>
+                </>
+              )}
+
+              <GoldButton type="submit" loading={uploading} fullWidth>
+                {editingResource ? 'Update Resource' : 'Add Resource'}
+              </GoldButton>
+            </form>
+          </GlassCard>
+        )}
+
+        <div className="space-y-3">
+          {visibleResources.length === 0 ? (
+            <GlassCard dark>
+              <p className="text-white/30 text-sm text-center py-4">
+                No resources for {dayNames[(selectedDay ?? 1) - 1]} yet
+              </p>
+            </GlassCard>
+          ) : (
+            visibleResources.map((resource, index) => {
+              const Icon = getResourceIcon(resource)
+              const isLink = resource.resource_type === 'link'
+
+              return (
+                <AnimatedSection key={resource.id} delay={0.1 + index * 0.05}>
+                  <GlassCard dark hover>
+                    <div className="flex items-center gap-3">
+                      <div className="rounded-xl bg-brand-gold/10 p-2">
+                        <Icon size={20} className="text-brand-gold" />
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <h3 className="text-white font-medium truncate">{resource.title}</h3>
+                        <p className="text-white/40 text-sm truncate">{resource.description}</p>
+                        <div className="flex items-center gap-2 mt-1">
+                          <span className="text-xs text-white/30 bg-white/5 px-2 py-0.5 rounded-full">
+                            {resource.file_type}
+                          </span>
+                          {resource.file_size && (
+                            <span className="text-xs text-white/30">{resource.file_size}</span>
+                          )}
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-1">
+                        <a
+                          href={resource.file_url}
+                          {...(isLink
+                            ? { target: '_blank', rel: 'noopener noreferrer' }
+                            : { download: true, target: '_blank', rel: 'noopener noreferrer' })}
+                          className="p-2 rounded-xl hover:bg-brand-gold/10 transition-colors"
+                        >
+                          {isLink ? (
+                            <ExternalLink size={18} className="text-brand-gold" />
+                          ) : (
+                            <Download size={18} className="text-brand-gold" />
+                          )}
+                        </a>
+                        {admin && (
+                          <>
+                            <button
+                              onClick={() => handleEdit(resource)}
+                              className="p-2 rounded-xl hover:bg-brand-gold/10 transition-colors"
+                            >
+                              <Edit2 size={16} className="text-white/40 hover:text-brand-gold" />
+                            </button>
+                            <button
+                              onClick={() => handleDelete(resource.id)}
+                              className="p-2 rounded-xl hover:bg-red-500/10 transition-colors"
+                            >
+                              <Trash2 size={16} className="text-white/30 hover:text-red-400" />
+                            </button>
+                          </>
+                        )}
+                      </div>
+                    </div>
+                  </GlassCard>
+                </AnimatedSection>
+              )
+            })
+          )}
+        </div>
       </div>
     </div>
   )
-}
-
-function getCurrentDay() {
-  const startDate = new Date('2026-08-17')
-  const now = new Date()
-  const diff = Math.floor((now.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24))
-  return Math.min(Math.max(diff + 1, 1), 5)
 }

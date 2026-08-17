@@ -1,5 +1,6 @@
 // lib/food-coupons.ts
 import { supabase } from './supabase'
+import { getLocalDateString } from './date-utils'
 
 type MealKey = 'breakfast' | 'lunch' | 'dinner'
 
@@ -24,14 +25,11 @@ export async function ensureCouponCoverage(participantIds?: string[]) {
     if (settingsError) throw settingsError
     if (!settings || settings.length === 0) return
 
-    const today = new Date()
-    today.setHours(0, 0, 0, 0)
+    const todayStr = getLocalDateString()
 
     const activeDays = settings.filter((s) => {
       if (!s.date) return false
-      const d = new Date(s.date)
-      d.setHours(0, 0, 0, 0)
-      return d <= today
+      return s.date <= todayStr
     })
 
     if (activeDays.length === 0) return
