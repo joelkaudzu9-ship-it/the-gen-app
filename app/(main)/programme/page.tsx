@@ -8,6 +8,7 @@ import { GlassCard } from '@/components/ui/GlassCard'
 import { AnimatedSection } from '@/components/ui/AnimatedSection'
 import { ProgrammeSkeleton } from '@/components/ui/LoadingSkeleton'
 import { MapPin, Clock, User, CheckCircle, Calendar } from 'lucide-react'
+import { getCurrentRetreatDay } from '@/lib/date-utils'
 
 export const dynamic = 'force-dynamic'
 export const fetchCache = 'force-no-store'
@@ -20,15 +21,37 @@ export default function ProgrammePage() {
   const [selectedDay, setSelectedDay] = useState(1)
   const [loading, setLoading] = useState(true)
   const [currentTime, setCurrentTime] = useState(new Date())
+  const [currentDay, setCurrentDay] = useState<number | null>(null)
 
   useEffect(() => {
     const interval = setInterval(() => setCurrentTime(new Date()), 60000)
     return () => clearInterval(interval)
   }, [])
 
+  // Fetch current day from coupon_settings on load
   useEffect(() => {
-    fetchSessions()
+    fetchCurrentDay()
+  }, [])
+
+  // Fetch sessions when selected day changes
+  useEffect(() => {
+    if (selectedDay) {
+      fetchSessions()
+    }
   }, [selectedDay])
+
+  async function fetchCurrentDay() {
+    try {
+      const { data } = await supabase.from('coupon_settings').select('day, date')
+      const day = getCurrentRetreatDay(data || [])
+      setCurrentDay(day)
+      if (day) {
+        setSelectedDay(day)
+      }
+    } catch (error) {
+      console.error('Error fetching current day:', error)
+    }
+  }
 
   async function fetchSessions() {
     setLoading(true)
@@ -65,21 +88,8 @@ export default function ProgrammePage() {
     })
   }
 
-  function getCurrentDay() {
-    const startDate = new Date('2026-08-17')
-    const now = new Date()
-    const diff = Math.floor((now.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24))
-    return Math.min(Math.max(diff + 1, 1), 5)
-  }
-
   const days = [1, 2, 3, 4, 5]
   const dayNames = ['Day 1', 'Day 2', 'Day 3', 'Day 4', 'Day 5']
-
-  // Auto-select current day on load
-  useEffect(() => {
-    const currentDay = getCurrentDay()
-    setSelectedDay(currentDay)
-  }, [])
 
   if (loading) return <ProgrammeSkeleton />
 
@@ -89,6 +99,11 @@ export default function ProgrammePage() {
         <div className="flex items-center gap-2 mb-4">
           <Calendar size={24} className="text-brand-gold" />
           <h1 className="text-2xl font-bold text-white">Programme</h1>
+          {currentDay && (
+            <span className="text-sm text-brand-gold/60 ml-auto">
+              Day {currentDay} • Today
+            </span>
+          )}
         </div>
       </AnimatedSection>
 
@@ -97,6 +112,7 @@ export default function ProgrammePage() {
         <div className="flex gap-2 overflow-x-auto mb-4" style={{ paddingBottom: '16px' }}>
           {days.map((day) => {
             const isActive = selectedDay === day
+            const isToday = currentDay === day
             return (
               <button
                 key={day}
@@ -107,9 +123,13 @@ export default function ProgrammePage() {
                   transition: 'all 0.3s ease',
                   background: isActive ? GOLD_GRADIENT : 'rgba(255,255,255,0.05)',
                   color: isActive ? '#0A0A0A' : 'rgba(255,255,255,0.6)',
+                  border: isActive ? 'none' : '1px solid rgba(255,255,255,0.1)',
                 }}
               >
                 {dayNames[day - 1]}
+                {isToday && !isActive && (
+                  <span style={{ marginLeft: '4px', color: '#D4AF37', fontSize: '10px' }}>●</span>
+                )}
               </button>
             )
           })}
@@ -120,7 +140,9 @@ export default function ProgrammePage() {
       <div className="space-y-3">
         {sessions.length === 0 ? (
           <GlassCard dark>
-            <p className="text-white/60 text-center" style={{ padding: '16px 0' }}>No sessions for this day</p>
+            <p className="text-white/60 text-center" style={{ padding: '16px 0' }}>
+              No sessions for {dayNames[selectedDay - 1]}
+            </p>
           </GlassCard>
         ) : (
           sessions.map((session, index) => {
