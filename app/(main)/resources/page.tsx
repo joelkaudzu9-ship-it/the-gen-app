@@ -534,8 +534,7 @@ export default function ResourcesPage() {
             visibleResources.map((resource, index) => {
               const Icon = getResourceIcon(resource)
               const isLink = resource.resource_type === 'link'
-              const youtubeId =
-                isLink && resource.file_type === 'Video' ? getYouTubeId(resource.file_url) : null
+              const youtubeId = isLink ? getYouTubeId(resource.file_url) : null
 
               return (
                 <AnimatedSection key={resource.id} delay={0.1 + index * 0.05}>
