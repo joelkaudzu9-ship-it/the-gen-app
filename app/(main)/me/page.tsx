@@ -7,7 +7,6 @@ import { Participant } from '@/lib/types'
 import { GlassCard } from '@/components/ui/GlassCard'
 import { AnimatedSection } from '@/components/ui/AnimatedSection'
 import { MeSkeleton } from '@/components/ui/LoadingSkeleton'
-import { QRCodeCanvas } from 'qrcode.react'
 import { Users, Bus, CheckCircle, RefreshCw } from 'lucide-react'
 import { motion } from 'framer-motion'
 import toast from 'react-hot-toast'
@@ -88,7 +87,7 @@ export default function MePage() {
         </button>
       </div>
 
-      {/* Digital ID Card */}
+      {/* Profile Card */}
       <AnimatedSection delay={0.1}>
         <GlassCard dark className="text-center">
           <motion.div
@@ -112,26 +111,6 @@ export default function MePage() {
                 🏠 {participant.groups.name}
               </p>
             )}
-
-            <div
-              className="mt-4 rounded-xl"
-              style={{
-                display: 'inline-block',
-                background: '#FFFFFF',
-                padding: '16px',
-                boxShadow: '0 4px 25px rgba(0,0,0,0.3)',
-              }}
-            >
-              <QRCodeCanvas
-                value={participant?.id || 'no-id'}
-                size={160}
-                level="H"
-                includeMargin
-                bgColor="#FFFFFF"
-                fgColor="#0A0A0A"
-              />
-            </div>
-            <p className="text-white/30 text-xs mt-2">Your Digital ID</p>
           </motion.div>
         </GlassCard>
       </AnimatedSection>

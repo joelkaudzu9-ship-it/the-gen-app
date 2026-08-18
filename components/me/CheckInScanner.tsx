@@ -119,12 +119,18 @@ export function CheckInScanner({ onSuccess }: CheckInScannerProps) {
             style={{
               width: '100%',
               maxWidth: '360px',
+              aspectRatio: '1 / 1',
               borderRadius: '16px',
               overflow: 'hidden',
               background: '#111',
             }}
           >
-            <video ref={videoRef} style={{ width: '100%', height: 'auto' }} playsInline muted />
+            <video
+              ref={videoRef}
+              style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+              playsInline
+              muted
+            />
           </div>
           {processing && (
             <div className="mt-4 flex items-center gap-2 text-white/70 text-sm">
