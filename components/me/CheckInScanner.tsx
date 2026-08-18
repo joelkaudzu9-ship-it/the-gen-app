@@ -20,8 +20,7 @@ export function CheckInScanner({ onSuccess }: CheckInScannerProps) {
 
   useEffect(() => {
     if (open) {
-      // Small delay to ensure the video element is rendered
-      setTimeout(startScanner, 100)
+      setTimeout(startScanner, 200)
     }
     return () => stopScanner()
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -40,19 +39,10 @@ export function CheckInScanner({ onSuccess }: CheckInScannerProps) {
           preferredCamera: 'environment',
           highlightScanRegion: true,
           highlightCodeOutline: true,
-          // Force the scanner to use the full viewport
-          maxScansPerSecond: 5,
         }
       )
       scannerRef.current = scanner
       await scanner.start()
-      
-      // Force the video to fill the container
-      if (videoRef.current) {
-        videoRef.current.style.width = '100%'
-        videoRef.current.style.height = '100%'
-        videoRef.current.style.objectFit = 'cover'
-      }
     } catch (error: any) {
       console.error('Scanner error:', error)
       if (error?.name === 'NotAllowedError') {
@@ -131,6 +121,7 @@ export function CheckInScanner({ onSuccess }: CheckInScannerProps) {
             style={{
               width: '100%',
               maxWidth: '400px',
+              height: 'auto',
               aspectRatio: '4 / 3',
               borderRadius: '16px',
               overflow: 'hidden',
@@ -143,38 +134,42 @@ export function CheckInScanner({ onSuccess }: CheckInScannerProps) {
               style={{
                 width: '100%',
                 height: '100%',
-                objectFit: 'cover',
-                position: 'absolute',
-                top: 0,
-                left: 0,
+                display: 'block',
+                objectFit: 'contain',
               }}
               playsInline
               muted
-              autoPlay
             />
-            {/* QR scanning overlay */}
+            {/* QR scanning overlay frame */}
             <div
               style={{
                 position: 'absolute',
                 top: '50%',
                 left: '50%',
                 transform: 'translate(-50%, -50%)',
-                width: '70%',
-                height: '70%',
+                width: '75%',
+                height: '75%',
                 border: '2px solid rgba(212, 175, 55, 0.6)',
                 borderRadius: '12px',
                 boxShadow: '0 0 0 4000px rgba(0, 0, 0, 0.4)',
                 pointerEvents: 'none',
               }}
-            />
+            >
+              {/* Corner markers */}
+              <div style={{ position: 'absolute', top: -2, left: -2, width: 20, height: 20, borderTop: '3px solid #D4AF37', borderLeft: '3px solid #D4AF37', borderRadius: '4px 0 0 0' }} />
+              <div style={{ position: 'absolute', top: -2, right: -2, width: 20, height: 20, borderTop: '3px solid #D4AF37', borderRight: '3px solid #D4AF37', borderRadius: '0 4px 0 0' }} />
+              <div style={{ position: 'absolute', bottom: -2, left: -2, width: 20, height: 20, borderBottom: '3px solid #D4AF37', borderLeft: '3px solid #D4AF37', borderRadius: '0 0 0 4px' }} />
+              <div style={{ position: 'absolute', bottom: -2, right: -2, width: 20, height: 20, borderBottom: '3px solid #D4AF37', borderRight: '3px solid #D4AF37', borderRadius: '0 0 4px 0' }} />
+            </div>
+            {/* Center dot */}
             <div
               style={{
                 position: 'absolute',
                 top: '50%',
                 left: '50%',
                 transform: 'translate(-50%, -50%)',
-                width: '4px',
-                height: '4px',
+                width: '6px',
+                height: '6px',
                 background: 'rgba(212, 175, 55, 0.8)',
                 borderRadius: '50%',
                 pointerEvents: 'none',
