@@ -11,6 +11,7 @@ import { QRCodeCanvas } from 'qrcode.react'
 import { Users, Bus, CheckCircle, RefreshCw } from 'lucide-react'
 import { motion } from 'framer-motion'
 import toast from 'react-hot-toast'
+import { getCurrentRetreatDay, getLocalDateString } from '@/lib/date-utils'
 
 export const dynamic = 'force-dynamic'
 export const fetchCache = 'force-no-store'
@@ -22,6 +23,8 @@ export default function MePage() {
   const [participant, setParticipant] = useState<Participant | null>(null)
   const [loading, setLoading] = useState(true)
   const [refreshing, setRefreshing] = useState(false)
+  const [todayCheckIn, setTodayCheckIn] = useState(false)
+  const [currentDay, setCurrentDay] = useState<number | null>(null)
 
   useEffect(() => {
     fetchData()
@@ -33,6 +36,25 @@ export default function MePage() {
       if (user) {
         const p = await getParticipant(user.id)
         if (p) setParticipant(p)
+        
+        // Fetch current day
+        const { data: settings } = await supabase
+          .from('coupon_settings')
+          .select('day, date')
+        const day = getCurrentRetreatDay(settings || [])
+        setCurrentDay(day)
+        
+        // Check if participant checked in today
+        if (p && day) {
+          const { data: todayCheckin } = await supabase
+            .from('daily_checkins')
+            .select('checked_in')
+            .eq('participant_id', p.id)
+            .eq('day', day)
+            .maybeSingle()
+          
+          setTodayCheckIn(todayCheckin?.checked_in || false)
+        }
       }
     } catch (error) {
       console.error('Error fetching participant:', error)
@@ -175,22 +197,25 @@ export default function MePage() {
           </AnimatedSection>
         )}
 
-        {/* Check-in Status */}
+        {/* Check-in Status - Now shows today's check-in */}
         <AnimatedSection delay={0.4}>
           <GlassCard dark>
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-3">
-                <CheckCircle size={20} className={participant?.checked_in ? 'text-green-500' : 'text-yellow-500'} />
+                <CheckCircle size={20} className={todayCheckIn ? 'text-green-500' : 'text-yellow-500'} />
                 <div>
-                  <p className="text-white/60 text-sm">Check-in Status</p>
-                  <p className={`font-semibold ${participant?.checked_in ? 'text-green-500' : 'text-yellow-500'}`}>
-                    {participant?.checked_in ? '✅ Checked In' : '⏳ Not Checked In'}
+                  <p className="text-white/60 text-sm">Today's Check-in</p>
+                  <p className={`font-semibold ${todayCheckIn ? 'text-green-500' : 'text-yellow-500'}`}>
+                    {todayCheckIn ? '✅ Checked In' : '⏳ Not Checked In'}
                   </p>
+                  {currentDay && (
+                    <p className="text-white/30 text-xs">Day {currentDay}</p>
+                  )}
                 </div>
               </div>
-              {participant?.checked_in_at && (
+              {todayCheckIn && (
                 <p className="text-white/30 text-xs">
-                  {new Date(participant.checked_in_at).toLocaleTimeString()}
+                  {new Date().toLocaleTimeString()}
                 </p>
               )}
             </div>
