@@ -2,6 +2,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
+import { createPortal } from 'react-dom'
 import { Capacitor } from '@capacitor/core'
 import { Browser } from '@capacitor/browser'
 import { supabase } from '@/lib/supabase'
@@ -10,7 +11,7 @@ import { sendPushNotification } from '@/lib/push'
 import { getCurrentRetreatDay } from '@/lib/date-utils'
 import { GlassCard } from '@/components/ui/GlassCard'
 import { AnimatedSection } from '@/components/ui/AnimatedSection'
-import { FileText, Download, Book, Music, Video, Link2, Trash2, Edit2, ExternalLink, ArrowLeft } from 'lucide-react'
+import { FileText, Download, Book, Music, Video, Link2, Trash2, Edit2, ExternalLink, ArrowLeft, Play, X } from 'lucide-react'
 import { GoldButton } from '@/components/ui/GoldButton'
 import Link from 'next/link'
 import toast from 'react-hot-toast'
@@ -34,6 +35,18 @@ interface Resource {
 
 type UploadMode = 'file' | 'link'
 
+// Matches watch?v=, youtu.be/, embed/, and shorts/ URL forms and pulls the 11-char video id.
+function getYouTubeId(url: string): string | null {
+  try {
+    const match = url.match(
+      /(?:youtube\.com\/watch\?v=|youtube\.com\/embed\/|youtube\.com\/shorts\/|youtu\.be\/)([a-zA-Z0-9_-]{11})/
+    )
+    return match ? match[1] : null
+  } catch {
+    return null
+  }
+}
+
 export default function ResourcesPage() {
   const [resources, setResources] = useState<Resource[]>([])
   const [loading, setLoading] = useState(true)
@@ -51,6 +64,14 @@ export default function ResourcesPage() {
   const [uploadDay, setUploadDay] = useState(1)
   const [uploading, setUploading] = useState(false)
   const [editingResource, setEditingResource] = useState<Resource | null>(null)
+
+  // In-app YouTube player
+  const [playingVideoId, setPlayingVideoId] = useState<string | null>(null)
+  const [mounted, setMounted] = useState(false)
+
+  useEffect(() => {
+    setMounted(true)
+  }, [])
 
   useEffect(() => {
     fetchResources()
@@ -486,6 +507,11 @@ export default function ResourcesPage() {
                       placeholder="https://..."
                       required
                     />
+                    {uploadLinkLabel === 'Video' && getYouTubeId(uploadLinkUrl) && (
+                      <p className="text-brand-gold text-xs mt-1">
+                        ✓ YouTube link detected — will show a thumbnail and play in-app
+                      </p>
+                    )}
                   </div>
                 </>
               )}
@@ -508,55 +534,109 @@ export default function ResourcesPage() {
             visibleResources.map((resource, index) => {
               const Icon = getResourceIcon(resource)
               const isLink = resource.resource_type === 'link'
+              const youtubeId =
+                isLink && resource.file_type === 'Video' ? getYouTubeId(resource.file_url) : null
 
               return (
                 <AnimatedSection key={resource.id} delay={0.1 + index * 0.05}>
                   <GlassCard dark hover>
-                    <div className="flex items-center gap-3">
-                      <div className="rounded-xl bg-brand-gold/10 p-2">
-                        <Icon size={20} className="text-brand-gold" />
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <h3 className="text-white font-medium truncate">{resource.title}</h3>
-                        <p className="text-white/40 text-sm truncate">{resource.description}</p>
-                        <div className="flex items-center gap-2 mt-1">
-                          <span className="text-xs text-white/30 bg-white/5 px-2 py-0.5 rounded-full">
-                            {resource.file_type}
-                          </span>
-                          {resource.file_size && (
-                            <span className="text-xs text-white/30">{resource.file_size}</span>
+                    {youtubeId ? (
+                      <div className="flex flex-col gap-3">
+                        <button
+                          onClick={() => setPlayingVideoId(youtubeId)}
+                          className="relative w-full overflow-hidden rounded-xl"
+                          style={{ aspectRatio: '16 / 9', background: '#000', border: 'none', padding: 0, cursor: 'pointer' }}
+                        >
+                          <img
+                            src={`https://img.youtube.com/vi/${youtubeId}/hqdefault.jpg`}
+                            alt={resource.title}
+                            style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }}
+                            onError={(e) => {
+                              (e.currentTarget as HTMLImageElement).style.display = 'none'
+                            }}
+                          />
+                          <div
+                            className="absolute inset-0 flex items-center justify-center"
+                            style={{ background: 'rgba(0,0,0,0.25)' }}
+                          >
+                            <div
+                              className="rounded-full flex items-center justify-center"
+                              style={{ width: 52, height: 52, background: 'rgba(212,175,55,0.92)' }}
+                            >
+                              <Play size={22} fill="#0A0A0A" color="#0A0A0A" style={{ marginLeft: 2 }} />
+                            </div>
+                          </div>
+                        </button>
+                        <div className="flex items-center gap-3">
+                          <div className="flex-1 min-w-0">
+                            <h3 className="text-white font-medium truncate">{resource.title}</h3>
+                            <p className="text-white/40 text-sm truncate">{resource.description}</p>
+                          </div>
+                          {admin && (
+                            <div className="flex items-center gap-1">
+                              <button
+                                onClick={() => handleEdit(resource)}
+                                className="p-2 rounded-xl hover:bg-brand-gold/10 transition-colors"
+                              >
+                                <Edit2 size={16} className="text-white/40 hover:text-brand-gold" />
+                              </button>
+                              <button
+                                onClick={() => handleDelete(resource.id)}
+                                className="p-2 rounded-xl hover:bg-red-500/10 transition-colors"
+                              >
+                                <Trash2 size={16} className="text-white/30 hover:text-red-400" />
+                              </button>
+                            </div>
                           )}
                         </div>
                       </div>
-                      <div className="flex items-center gap-1">
-                        <button
-                          onClick={() => openResource(resource.file_url)}
-                          className="p-2 rounded-xl hover:bg-brand-gold/10 transition-colors"
-                        >
-                          {isLink ? (
-                            <ExternalLink size={18} className="text-brand-gold" />
-                          ) : (
-                            <Download size={18} className="text-brand-gold" />
+                    ) : (
+                      <div className="flex items-center gap-3">
+                        <div className="rounded-xl bg-brand-gold/10 p-2">
+                          <Icon size={20} className="text-brand-gold" />
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <h3 className="text-white font-medium truncate">{resource.title}</h3>
+                          <p className="text-white/40 text-sm truncate">{resource.description}</p>
+                          <div className="flex items-center gap-2 mt-1">
+                            <span className="text-xs text-white/30 bg-white/5 px-2 py-0.5 rounded-full">
+                              {resource.file_type}
+                            </span>
+                            {resource.file_size && (
+                              <span className="text-xs text-white/30">{resource.file_size}</span>
+                            )}
+                          </div>
+                        </div>
+                        <div className="flex items-center gap-1">
+                          <button
+                            onClick={() => openResource(resource.file_url)}
+                            className="p-2 rounded-xl hover:bg-brand-gold/10 transition-colors"
+                          >
+                            {isLink ? (
+                              <ExternalLink size={18} className="text-brand-gold" />
+                            ) : (
+                              <Download size={18} className="text-brand-gold" />
+                            )}
+                          </button>
+                          {admin && (
+                            <>
+                              <button
+                                onClick={() => handleEdit(resource)}
+                                className="p-2 rounded-xl hover:bg-brand-gold/10 transition-colors"
+                              >
+                                <Edit2 size={16} className="text-white/40 hover:text-brand-gold" />
+                              </button>
+                              <button
+                                onClick={() => handleDelete(resource.id)}
+                                className="p-2 rounded-xl hover:bg-red-500/10 transition-colors"
+                              >
+                                <Trash2 size={16} className="text-white/30 hover:text-red-400" />
+                              </button>
+                            </>
                           )}
-                        </button>
-                        {admin && (
-                          <>
-                            <button
-                              onClick={() => handleEdit(resource)}
-                              className="p-2 rounded-xl hover:bg-brand-gold/10 transition-colors"
-                            >
-                              <Edit2 size={16} className="text-white/40 hover:text-brand-gold" />
-                            </button>
-                            <button
-                              onClick={() => handleDelete(resource.id)}
-                              className="p-2 rounded-xl hover:bg-red-500/10 transition-colors"
-                            >
-                              <Trash2 size={16} className="text-white/30 hover:text-red-400" />
-                            </button>
-                          </>
-                        )}
+                        </div>
                       </div>
-                    </div>
+                    )}
                   </GlassCard>
                 </AnimatedSection>
               )
@@ -564,6 +644,48 @@ export default function ResourcesPage() {
           )}
         </div>
       </div>
+
+      {mounted && playingVideoId && createPortal(
+        <div
+          style={{
+            position: 'fixed',
+            inset: 0,
+            zIndex: 9999,
+            background: 'rgba(0,0,0,0.96)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            padding: '20px',
+          }}
+        >
+          <button
+            onClick={() => setPlayingVideoId(null)}
+            style={{
+              position: 'absolute',
+              top: 40,
+              right: 20,
+              background: 'rgba(255,255,255,0.1)',
+              border: 'none',
+              color: 'white',
+              cursor: 'pointer',
+              padding: '8px',
+              borderRadius: '50%',
+            }}
+          >
+            <X size={28} />
+          </button>
+          <div style={{ width: '100%', maxWidth: '720px', aspectRatio: '16 / 9' }}>
+            <iframe
+              src={`https://www.youtube.com/embed/${playingVideoId}?autoplay=1&rel=0`}
+              title="YouTube video player"
+              style={{ width: '100%', height: '100%', border: 'none', borderRadius: '12px' }}
+              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+              allowFullScreen
+            />
+          </div>
+        </div>,
+        document.body
+      )}
     </div>
   )
 }
