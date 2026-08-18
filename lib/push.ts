@@ -6,26 +6,33 @@ import { supabase } from './supabase'
 export async function registerPushToken(token: string, platform: 'android' | 'web') {
   try {
     const { data: { user } } = await supabase.auth.getUser()
-    if (!user) return
+    if (!user) {
+      console.log('🔔 registerPushToken: no user, skipping save')
+      return
+    }
 
-    await supabase
+    const { error } = await supabase
       .from('push_tokens')
       .upsert(
         { user_id: user.id, token, platform, updated_at: new Date().toISOString() },
         { onConflict: 'token' }
       )
+
+    if (error) {
+      console.error('🔔 registerPushToken: Supabase error:', error)
+    } else {
+      console.log('🔔 registerPushToken: saved successfully for', platform)
+    }
   } catch (error) {
-    console.error('Error registering push token:', error)
+    console.error('🔔 registerPushToken: unexpected error:', error)
   }
 }
 
 export async function sendPushNotification(title: string, message: string, data?: any) {
-  console.log('🔔 sendPushNotification called with:', title, message)
   try {
     const baseUrl = process.env.NEXT_PUBLIC_SITE_URL || ''
-    console.log('🔔 Fetching:', `${baseUrl}/api/send-notification`)
 
-    const response = await fetch(`${baseUrl}/api/send-notification`, {
+    const response = await fetch(`${baseUrl}/api/send-notification/`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -37,17 +44,13 @@ export async function sendPushNotification(title: string, message: string, data?
       }),
     })
 
-    console.log('🔔 Response status:', response.status)
-
     if (!response.ok) {
       throw new Error('Failed to send notification')
     }
 
-    const result = await response.json()
-    console.log('🔔 Response body:', result)
-    return result
+    return await response.json()
   } catch (error) {
-    console.error('🔔 Error sending push notification:', error)
+    console.error('Error sending push notification:', error)
     return null
   }
 }

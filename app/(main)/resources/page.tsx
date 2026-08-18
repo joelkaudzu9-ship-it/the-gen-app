@@ -2,6 +2,8 @@
 'use client'
 
 import { useState, useEffect } from 'react'
+import { Capacitor } from '@capacitor/core'
+import { Browser } from '@capacitor/browser'
 import { supabase } from '@/lib/supabase'
 import { isAdmin } from '@/lib/admin'
 import { sendPushNotification } from '@/lib/push'
@@ -276,6 +278,21 @@ export default function ResourcesPage() {
     return FileText
   }
 
+  async function openResource(url: string) {
+    try {
+      if (Capacitor.isNativePlatform()) {
+        // WebViews don't support target="_blank" / window.open natively —
+        // use Capacitor's Browser plugin to open a real in-app browser tab.
+        await Browser.open({ url })
+      } else {
+        window.open(url, '_blank', 'noopener,noreferrer')
+      }
+    } catch (error) {
+      console.error('Error opening resource:', error)
+      toast.error('Failed to open resource')
+    }
+  }
+
   const days = [1, 2, 3, 4, 5]
   const dayNames = ['Day 1', 'Day 2', 'Day 3', 'Day 4', 'Day 5']
 
@@ -512,10 +529,8 @@ export default function ResourcesPage() {
                         </div>
                       </div>
                       <div className="flex items-center gap-1">
-                        <a
-                          href={resource.file_url}
-                          target="_blank"
-                          rel="noopener noreferrer"
+                        <button
+                          onClick={() => openResource(resource.file_url)}
                           className="p-2 rounded-xl hover:bg-brand-gold/10 transition-colors"
                         >
                           {isLink ? (
@@ -523,7 +538,7 @@ export default function ResourcesPage() {
                           ) : (
                             <Download size={18} className="text-brand-gold" />
                           )}
-                        </a>
+                        </button>
                         {admin && (
                           <>
                             <button

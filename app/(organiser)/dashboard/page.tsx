@@ -2,6 +2,7 @@
 'use client'
 
 import { useEffect, useState } from 'react'
+import Link from 'next/link'
 import { supabase } from '@/lib/supabase'
 import { ensureCouponCoverage } from '@/lib/food-coupons'
 import { GlassCard } from '@/components/ui/GlassCard'
@@ -17,6 +18,7 @@ import {
   RefreshCw,
   Ticket,
   Clock,
+  QrCode,
 } from 'lucide-react'
 import { QRScanner } from '@/components/organiser/QRScanner'
 import { AnnouncementPublisher } from '@/components/organiser/AnnouncementPublisher'
@@ -58,10 +60,6 @@ export default function DashboardPage() {
 
   useEffect(() => {
     fetchStats()
-    // Also keeps food coupon coverage in sync — this is what catches a new
-    // retreat day starting with no organiser action required. As long as
-    // this dashboard is open sometime after midnight, coverage backfills
-    // automatically within 30 seconds of the day beginning.
     ensureCouponCoverage()
 
     const interval = setInterval(() => {
@@ -250,7 +248,26 @@ export default function DashboardPage() {
         </GlassCard>
       )}
 
-      {/* Tabs - Updated to include Sessions */}
+      {/* Quick access: Check-in Code (separate page, not a tab) */}
+      <Link
+        href="/checkin-code"
+        className="flex items-center gap-3 rounded-xl"
+        style={{
+          padding: '12px 16px',
+          background: 'rgba(255,255,255,0.05)',
+          border: '1px solid rgba(255,255,255,0.1)',
+        }}
+      >
+        <div className="rounded-xl bg-brand-gold/10" style={{ padding: '8px' }}>
+          <QrCode size={18} className="text-brand-gold" />
+        </div>
+        <div className="flex-1">
+          <p className="text-white font-medium text-sm">Check-in QR Code</p>
+          <p className="text-white/40 text-xs">Display or download the venue check-in code</p>
+        </div>
+      </Link>
+
+      {/* Tabs */}
       <div className="grid grid-cols-6 gap-2">
         {tabs.map((tab) => {
           const isActive = activeTab === tab.id

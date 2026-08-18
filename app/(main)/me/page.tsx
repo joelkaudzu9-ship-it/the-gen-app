@@ -12,6 +12,7 @@ import { Users, Bus, CheckCircle, RefreshCw } from 'lucide-react'
 import { motion } from 'framer-motion'
 import toast from 'react-hot-toast'
 import { getCurrentRetreatDay, getLocalDateString } from '@/lib/date-utils'
+import { CheckInScanner } from '@/components/me/CheckInScanner'
 
 export const dynamic = 'force-dynamic'
 export const fetchCache = 'force-no-store'
@@ -36,15 +37,13 @@ export default function MePage() {
       if (user) {
         const p = await getParticipant(user.id)
         if (p) setParticipant(p)
-        
-        // Fetch current day
+
         const { data: settings } = await supabase
           .from('coupon_settings')
           .select('day, date')
         const day = getCurrentRetreatDay(settings || [])
         setCurrentDay(day)
-        
-        // Check if participant checked in today
+
         if (p && day) {
           const { data: todayCheckin } = await supabase
             .from('daily_checkins')
@@ -52,7 +51,7 @@ export default function MePage() {
             .eq('participant_id', p.id)
             .eq('day', day)
             .maybeSingle()
-          
+
           setTodayCheckIn(todayCheckin?.checked_in || false)
         }
       }
@@ -97,7 +96,6 @@ export default function MePage() {
             animate={{ scale: 1, opacity: 1 }}
             transition={{ duration: 0.5 }}
           >
-            {/* Avatar */}
             <div
               className="rounded-full mx-auto flex items-center justify-center font-bold text-black shadow-gold mb-4"
               style={{ width: '96px', height: '96px', background: GOLD_GRADIENT_DIAG, fontSize: '1.875rem' }}
@@ -115,7 +113,6 @@ export default function MePage() {
               </p>
             )}
 
-            {/* QR Code */}
             <div
               className="mt-4 rounded-xl"
               style={{
@@ -134,14 +131,13 @@ export default function MePage() {
                 fgColor="#0A0A0A"
               />
             </div>
-            <p className="text-white/30 text-xs mt-2">📱 Scan for check-in</p>
+            <p className="text-white/30 text-xs mt-2">Your Digital ID</p>
           </motion.div>
         </GlassCard>
       </AnimatedSection>
 
       {/* Details */}
       <div className="space-y-3 mt-4">
-        {/* Group Info */}
         {participant?.groups && (
           <AnimatedSection delay={0.2}>
             <GlassCard dark>
@@ -161,7 +157,6 @@ export default function MePage() {
           </AnimatedSection>
         )}
 
-        {/* Transport Info */}
         {participant?.transport && (
           <AnimatedSection delay={0.3}>
             <GlassCard dark>
@@ -197,10 +192,10 @@ export default function MePage() {
           </AnimatedSection>
         )}
 
-        {/* Check-in Status - Now shows today's check-in */}
+        {/* Check-in Status + self check-in button */}
         <AnimatedSection delay={0.4}>
           <GlassCard dark>
-            <div className="flex items-center justify-between">
+            <div className="flex items-center justify-between mb-3">
               <div className="flex items-center gap-3">
                 <CheckCircle size={20} className={todayCheckIn ? 'text-green-500' : 'text-yellow-500'} />
                 <div>
@@ -219,6 +214,10 @@ export default function MePage() {
                 </p>
               )}
             </div>
+
+            {!todayCheckIn && currentDay && (
+              <CheckInScanner onSuccess={() => setTodayCheckIn(true)} />
+            )}
           </GlassCard>
         </AnimatedSection>
       </div>
