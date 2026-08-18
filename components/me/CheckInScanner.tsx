@@ -19,7 +19,10 @@ export function CheckInScanner({ onSuccess }: CheckInScannerProps) {
   const scannerRef = useRef<QrScanner | null>(null)
 
   useEffect(() => {
-    if (open) startScanner()
+    if (open) {
+      // Small delay to ensure the video element is rendered
+      setTimeout(startScanner, 100)
+    }
     return () => stopScanner()
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open])
@@ -37,10 +40,19 @@ export function CheckInScanner({ onSuccess }: CheckInScannerProps) {
           preferredCamera: 'environment',
           highlightScanRegion: true,
           highlightCodeOutline: true,
+          // Force the scanner to use the full viewport
+          maxScansPerSecond: 5,
         }
       )
       scannerRef.current = scanner
       await scanner.start()
+      
+      // Force the video to fill the container
+      if (videoRef.current) {
+        videoRef.current.style.width = '100%'
+        videoRef.current.style.height = '100%'
+        videoRef.current.style.objectFit = 'cover'
+      }
     } catch (error: any) {
       console.error('Scanner error:', error)
       if (error?.name === 'NotAllowedError') {
@@ -118,18 +130,55 @@ export function CheckInScanner({ onSuccess }: CheckInScannerProps) {
           <div
             style={{
               width: '100%',
-              maxWidth: '360px',
-              aspectRatio: '1 / 1',
+              maxWidth: '400px',
+              aspectRatio: '4 / 3',
               borderRadius: '16px',
               overflow: 'hidden',
               background: '#111',
+              position: 'relative',
             }}
           >
             <video
               ref={videoRef}
-              style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+              style={{
+                width: '100%',
+                height: '100%',
+                objectFit: 'cover',
+                position: 'absolute',
+                top: 0,
+                left: 0,
+              }}
               playsInline
               muted
+              autoPlay
+            />
+            {/* QR scanning overlay */}
+            <div
+              style={{
+                position: 'absolute',
+                top: '50%',
+                left: '50%',
+                transform: 'translate(-50%, -50%)',
+                width: '70%',
+                height: '70%',
+                border: '2px solid rgba(212, 175, 55, 0.6)',
+                borderRadius: '12px',
+                boxShadow: '0 0 0 4000px rgba(0, 0, 0, 0.4)',
+                pointerEvents: 'none',
+              }}
+            />
+            <div
+              style={{
+                position: 'absolute',
+                top: '50%',
+                left: '50%',
+                transform: 'translate(-50%, -50%)',
+                width: '4px',
+                height: '4px',
+                background: 'rgba(212, 175, 55, 0.8)',
+                borderRadius: '50%',
+                pointerEvents: 'none',
+              }}
             />
           </div>
           {processing && (
