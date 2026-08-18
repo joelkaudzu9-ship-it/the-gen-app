@@ -92,40 +92,40 @@ export function CheckInScanner({ onSuccess }: CheckInScannerProps) {
             position: 'fixed',
             inset: 0,
             zIndex: 9999,
-            background: 'rgba(0,0,0,0.92)',
+            background: 'rgba(0,0,0,0.95)',
             display: 'flex',
             flexDirection: 'column',
             alignItems: 'center',
             justifyContent: 'center',
-            padding: '24px',
+            padding: '20px',
           }}
         >
           <button
             onClick={() => { stopScanner(); setOpen(false) }}
             style={{
               position: 'absolute',
-              top: 20,
+              top: 40,
               right: 20,
-              background: 'none',
+              background: 'rgba(255,255,255,0.1)',
               border: 'none',
               color: 'white',
               cursor: 'pointer',
+              padding: '8px',
+              borderRadius: '50%',
             }}
           >
             <X size={28} />
           </button>
-          <p className="text-white mb-4 text-center text-sm">
+          <p className="text-white mb-6 text-center text-sm">
             Point your camera at the check-in QR code
           </p>
           <div
             style={{
-              width: '100%',
-              maxWidth: '400px',
-              height: 'auto',
-              aspectRatio: '4 / 3',
+              width: 'min(100%, 400px)',
+              aspectRatio: '1 / 1',
               borderRadius: '16px',
               overflow: 'hidden',
-              background: '#111',
+              background: '#000',
               position: 'relative',
             }}
           >
@@ -134,8 +134,8 @@ export function CheckInScanner({ onSuccess }: CheckInScannerProps) {
               style={{
                 width: '100%',
                 height: '100%',
+                objectFit: 'cover',
                 display: 'block',
-                objectFit: 'contain',
               }}
               playsInline
               muted
@@ -147,43 +147,49 @@ export function CheckInScanner({ onSuccess }: CheckInScannerProps) {
                 top: '50%',
                 left: '50%',
                 transform: 'translate(-50%, -50%)',
-                width: '75%',
-                height: '75%',
-                border: '2px solid rgba(212, 175, 55, 0.6)',
+                width: '70%',
+                height: '70%',
+                border: '2px solid rgba(212, 175, 55, 0.5)',
                 borderRadius: '12px',
-                boxShadow: '0 0 0 4000px rgba(0, 0, 0, 0.4)',
+                boxShadow: '0 0 0 4000px rgba(0, 0, 0, 0.5)',
                 pointerEvents: 'none',
               }}
             >
               {/* Corner markers */}
-              <div style={{ position: 'absolute', top: -2, left: -2, width: 20, height: 20, borderTop: '3px solid #D4AF37', borderLeft: '3px solid #D4AF37', borderRadius: '4px 0 0 0' }} />
-              <div style={{ position: 'absolute', top: -2, right: -2, width: 20, height: 20, borderTop: '3px solid #D4AF37', borderRight: '3px solid #D4AF37', borderRadius: '0 4px 0 0' }} />
-              <div style={{ position: 'absolute', bottom: -2, left: -2, width: 20, height: 20, borderBottom: '3px solid #D4AF37', borderLeft: '3px solid #D4AF37', borderRadius: '0 0 0 4px' }} />
-              <div style={{ position: 'absolute', bottom: -2, right: -2, width: 20, height: 20, borderBottom: '3px solid #D4AF37', borderRight: '3px solid #D4AF37', borderRadius: '0 0 4px 0' }} />
+              <div style={{ position: 'absolute', top: -2, left: -2, width: 25, height: 25, borderTop: '3px solid #D4AF37', borderLeft: '3px solid #D4AF37', borderRadius: '4px 0 0 0' }} />
+              <div style={{ position: 'absolute', top: -2, right: -2, width: 25, height: 25, borderTop: '3px solid #D4AF37', borderRight: '3px solid #D4AF37', borderRadius: '0 4px 0 0' }} />
+              <div style={{ position: 'absolute', bottom: -2, left: -2, width: 25, height: 25, borderBottom: '3px solid #D4AF37', borderLeft: '3px solid #D4AF37', borderRadius: '0 0 0 4px' }} />
+              <div style={{ position: 'absolute', bottom: -2, right: -2, width: 25, height: 25, borderBottom: '3px solid #D4AF37', borderRight: '3px solid #D4AF37', borderRadius: '0 0 4px 0' }} />
             </div>
-            {/* Center dot */}
+            {/* Scanning line animation */}
             <div
               style={{
                 position: 'absolute',
-                top: '50%',
-                left: '50%',
-                transform: 'translate(-50%, -50%)',
-                width: '6px',
-                height: '6px',
-                background: 'rgba(212, 175, 55, 0.8)',
-                borderRadius: '50%',
+                top: '15%',
+                left: '17%',
+                width: '66%',
+                height: '2px',
+                background: 'linear-gradient(90deg, transparent, #D4AF37, transparent)',
+                animation: 'scanLine 2s ease-in-out infinite',
                 pointerEvents: 'none',
               }}
             />
           </div>
           {processing && (
-            <div className="mt-4 flex items-center gap-2 text-white/70 text-sm">
+            <div className="mt-6 flex items-center gap-2 text-white/70 text-sm">
               <div className="animate-spin rounded-full h-4 w-4 border-2 border-brand-gold border-t-transparent" />
               Checking you in...
             </div>
           )}
         </div>
       )}
+      <style jsx>{`
+        @keyframes scanLine {
+          0% { top: 15%; }
+          50% { top: 75%; }
+          100% { top: 15%; }
+        }
+      `}</style>
     </>
   )
 }
