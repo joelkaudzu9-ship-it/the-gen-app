@@ -4,7 +4,6 @@
 import { useEffect, useState } from 'react'
 import Link from 'next/link'
 import { supabase } from '@/lib/supabase'
-import { ensureCouponCoverage } from '@/lib/food-coupons'
 import { GlassCard } from '@/components/ui/GlassCard'
 import {
   Users,
@@ -16,14 +15,12 @@ import {
   Camera,
   Megaphone,
   RefreshCw,
-  Ticket,
   Clock,
   QrCode,
 } from 'lucide-react'
 import { QRScanner } from '@/components/organiser/QRScanner'
 import { AnnouncementPublisher } from '@/components/organiser/AnnouncementPublisher'
 import { HelpDesk } from '@/components/organiser/HelpDesk'
-import { CouponManager } from '@/components/organiser/CouponManager'
 import { SessionManager } from '@/components/organiser/SessionManager'
 import toast from 'react-hot-toast'
 
@@ -56,15 +53,13 @@ export default function DashboardPage() {
   const [stats, setStats] = useState<DashboardStats>(defaultStats)
   const [loading, setLoading] = useState(true)
   const [refreshing, setRefreshing] = useState(false)
-  const [activeTab, setActiveTab] = useState<'overview' | 'scanner' | 'announcements' | 'help' | 'coupons' | 'sessions'>('overview')
+  const [activeTab, setActiveTab] = useState<'overview' | 'scanner' | 'announcements' | 'help' | 'sessions'>('overview')
 
   useEffect(() => {
     fetchStats()
-    ensureCouponCoverage()
 
     const interval = setInterval(() => {
       fetchStats()
-      ensureCouponCoverage()
     }, 30000)
     return () => clearInterval(interval)
   }, [])
@@ -129,7 +124,6 @@ export default function DashboardPage() {
   const handleRefresh = async () => {
     setRefreshing(true)
     await fetchStats()
-    await ensureCouponCoverage()
     setRefreshing(false)
     toast.success('Dashboard updated')
   }
@@ -149,7 +143,6 @@ export default function DashboardPage() {
     { id: 'overview', label: 'Overview', icon: LayoutGrid },
     { id: 'scanner', label: 'Scanner', icon: Camera },
     { id: 'announcements', label: 'Announce', icon: Megaphone },
-    { id: 'coupons', label: 'Coupons', icon: Ticket },
     { id: 'sessions', label: 'Sessions', icon: Clock },
     { id: 'help', label: 'Help', icon: LifeBuoy },
   ] as const
@@ -268,7 +261,7 @@ export default function DashboardPage() {
       </Link>
 
       {/* Tabs */}
-      <div className="grid grid-cols-6 gap-2">
+      <div className="grid grid-cols-5 gap-2">
         {tabs.map((tab) => {
           const isActive = activeTab === tab.id
           const Icon = tab.icon
@@ -329,7 +322,6 @@ export default function DashboardPage() {
 
         {activeTab === 'scanner' && <QRScanner />}
         {activeTab === 'announcements' && <AnnouncementPublisher />}
-        {activeTab === 'coupons' && <CouponManager />}
         {activeTab === 'sessions' && <SessionManager />}
         {activeTab === 'help' && <HelpDesk />}
       </div>

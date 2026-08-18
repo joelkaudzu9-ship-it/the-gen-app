@@ -1,7 +1,6 @@
 // lib/checkin.ts
 import { supabase, getParticipant } from './supabase'
 import { getCurrentRetreatDay } from './date-utils'
-import { ensureCouponCoverage } from './food-coupons'
 
 export async function selfCheckIn(scannedCode: string): Promise<{ success: boolean; message: string }> {
   try {
@@ -25,6 +24,9 @@ export async function selfCheckIn(scannedCode: string): Promise<{ success: boole
       return { success: false, message: 'That QR code is not valid for check-in' }
     }
 
+    // Note: coupon_settings only stores {day, date} rows and is used here
+    // purely as the retreat's day calendar — it is shared infrastructure,
+    // not part of the food coupon feature.
     const { data: settings } = await supabase.from('coupon_settings').select('day, date')
     const day = getCurrentRetreatDay(settings || [])
     if (!day) return { success: false, message: 'The retreat has not started yet' }
@@ -63,8 +65,6 @@ export async function selfCheckIn(scannedCode: string): Promise<{ success: boole
         scanned_at: nowIso,
       })
     }
-
-    await ensureCouponCoverage([participant.id])
 
     return { success: true, message: "You're checked in! Enjoy today's sessions 🎉" }
   } catch (error) {
